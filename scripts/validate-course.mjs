@@ -38,7 +38,7 @@ for (const [path, text] of Object.entries(files)) {
   for (const key of ["id", "title", "lang"]) {
     if (!challenge[key]) errors.push(`${path}: 缺少 ${key}`);
   }
-  if (!["javascript", "python", "cpp", "shell"].includes(challenge.lang)) {
+  if (!["javascript", "python", "cpp", "shell", "java"].includes(challenge.lang)) {
     errors.push(`${path}: 不支持的语言 ${challenge.lang}`);
   }
   if (challengeIds.has(challenge.id)) errors.push(`${path}: 挑战 id 重复 ${challenge.id}`);

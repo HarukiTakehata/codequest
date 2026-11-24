@@ -1,0 +1,14 @@
+{
+  "id": "ch03_js_fizzbuzz",
+  "title": "FizzBuzz",
+  "description": "**目标**：先读一个整数 n，然后依次输出 1..n：3 的倍数输出 `Fizz`，5 的倍数输出 `Buzz`，同时是两者倍数输出 `FizzBuzz`，其余输出数字本身。每行一个结果。",
+  "lang": "javascript",
+  "mode": "code",
+  "template": "const n = Number(readline());\nfor (let i = 1; i <= n; i++) {\n  // TODO: 按 FizzBuzz 规则输出 i\n  console.log(i);\n}\n",
+  "judge": "j_js_fizzbuzz",
+  "goals": [
+    { "id": "g-loop", "text": "使用循环遍历 1..n", "check": { "kind": "source-regex", "pattern": "for\\s*\\(" } },
+    { "id": "g-judge", "text": "通过全部测试点", "check": { "kind": "testcase", "all": true } }
+  ],
+  "requireAllGoals": false
+}

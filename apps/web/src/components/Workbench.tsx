@@ -46,9 +46,10 @@ export function Workbench({ challenge, judgeConfig, onPass, onClose }: Props) {
     });
     setLastRun(response);
     if (response.files) setFiles(response.files);
-    if (challenge.lang === "cpp" && response.stderr) {
-      const markers = [...response.stderr.matchAll(/(?:^|\n)[^\n]*?:(\d+):(\d+)?:\s*(.*)/g)]
-        .map((m) => ({ line: Number(m[1]), message: m[3] ?? m[0] }));
+    if ((challenge.lang === "cpp" || challenge.lang === "java") && response.stderr) {
+      const pattern = challenge.lang === "cpp" ? /main\.(?:cpp|c):(\d+):\d+:\s*(.*)/g : /[^\n:]+:(\d+):\s*([^\n]+)/g;
+      const markers = [...response.stderr.matchAll(pattern)]
+        .map((m) => ({ line: Number(m[1]), message: String(m[2] ?? m[0]).trim() }));
       setDiagnostics(markers.length ? markers : [{ line: 1, message: response.stderr.trim() }]);
     }
     setBusy(false);

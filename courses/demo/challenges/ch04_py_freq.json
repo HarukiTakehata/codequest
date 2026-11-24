@@ -1,0 +1,14 @@
+{
+  "id": "ch04_py_freq",
+  "title": "Python 词频统计",
+  "description": "**目标**：第一行是单词数 n，接下来 n 行每行一个单词。按字典序输出每个不同单词及其出现次数，格式 `单词 次数`（空格分隔，每行一条）。",
+  "lang": "python",
+  "mode": "code",
+  "template": "n = int(input())\nfreq = {}\n# TODO: 读取 n 个单词并统计次数\n# TODO: 按字典序输出 单词 次数\n",
+  "judge": "j_py_freq",
+  "goals": [
+    { "id": "g-dict", "text": "使用字典统计", "check": { "kind": "source-regex", "pattern": "freq" } },
+    { "id": "g-judge", "text": "通过全部测试点", "check": { "kind": "testcase", "all": true } }
+  ],
+  "requireAllGoals": false
+}

@@ -6,6 +6,7 @@
   "main": "./src/template.ts",
   "types": "./src/template.ts",
   "dependencies": {
-    "@codequest/judge": "*"
+    "@codequest/judge": "*",
+    "@live-codes/clang-wasm": "^0.3.0"
   }
 }

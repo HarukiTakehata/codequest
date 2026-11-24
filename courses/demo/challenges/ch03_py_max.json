@@ -1,0 +1,14 @@
+{
+  "id": "ch03_py_max",
+  "title": "Python 找最大值",
+  "description": "**目标**：第一行是整数 n，接下来 n 行各有一个整数，输出其中的最大值。\n\n提示：`max()` 可以求出列表最大值。",
+  "lang": "python",
+  "mode": "code",
+  "template": "n = int(input())\nnums = [int(input()) for _ in range(n)]\n# TODO: 输出 nums 中的最大值\nprint(\"TODO\")\n",
+  "judge": "j_py_max",
+  "goals": [
+    { "id": "g-input", "text": "使用 input() 读取所有数字", "check": { "kind": "source-regex", "pattern": "input\\(" } },
+    { "id": "g-judge", "text": "通过全部测试点", "check": { "kind": "testcase", "all": true } }
+  ],
+  "requireAllGoals": false
+}

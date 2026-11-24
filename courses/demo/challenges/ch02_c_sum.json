@@ -1,0 +1,14 @@
+{
+  "id": "ch02_c_sum",
+  "title": "C · 读入两个整数求和",
+  "description": "**目标**：stdin 有两个整数，输出 `sum=<两数之和>`。\n\n提示：`int a, b; scanf(\"%d %d\", &a, &b);`。",
+  "lang": "cpp",
+  "mode": "code",
+  "template": "#include <stdio.h>\n\nint main(void) {\n  int a = 0, b = 0;\n  scanf(\"%d %d\", &a, &b);\n  // TODO: 输出 sum=<a+b>\n  printf(\"sum=TODO\\n\");\n  return 0;\n}\n",
+  "judge": "j_c_sum",
+  "goals": [
+    { "id": "g-scanf", "text": "使用 scanf 读取输入", "check": { "kind": "source-regex", "pattern": "scanf" } },
+    { "id": "g-judge", "text": "通过全部测试点", "check": { "kind": "testcase", "all": true } }
+  ],
+  "requireAllGoals": false
+}

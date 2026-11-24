@@ -27,7 +27,7 @@ const goalSchema = z.object({
 
 const challengeSchema = z.object({
   id: z.string(), title: z.string(), description: z.string().default(""),
-  lang: z.enum(["javascript", "python", "cpp", "shell"]),
+  lang: z.enum(["javascript", "python", "cpp", "shell", "java"]),
   mode: z.enum(["code", "term"]).default("code"),
   template: z.string().default(""),
   judge: z.string().optional(),

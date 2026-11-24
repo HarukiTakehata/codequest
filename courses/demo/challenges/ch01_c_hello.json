@@ -1,0 +1,14 @@
+{
+  "id": "ch01_c_hello",
+  "title": "C · HelloWorld",
+  "description": "**目标**：用 C 语言输出一行 `hello from C`。\n\n代码在浏览器 Worker 内由 Clang 22（wasm-clang）真实编译并运行，支持 libc 标准 IO。首次编译需下载约 28MB 运行时资产。",
+  "lang": "cpp",
+  "mode": "code",
+  "template": "#include <stdio.h>\n\nint main(void) {\n  // TODO: 输出 hello from C\n  puts(\"TODO\");\n  return 0;\n}\n",
+  "judge": "j_c_hello",
+  "goals": [
+    { "id": "g-main", "text": "包含 main 函数", "check": { "kind": "source-regex", "pattern": "int\\s+main" } },
+    { "id": "g-judge", "text": "通过全部测试点", "check": { "kind": "testcase", "all": true } }
+  ],
+  "requireAllGoals": false
+}

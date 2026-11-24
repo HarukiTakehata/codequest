@@ -1,6 +1,6 @@
 /** Shared contracts. Pure TypeScript only — no browser or Node APIs (design §1.2 / AGENTS.md #3). */
 
-export type Lang = "javascript" | "python" | "cpp" | "shell";
+export type Lang = "javascript" | "python" | "cpp" | "shell" | "java";
 
 export interface RunRequest {
   lang: Lang;

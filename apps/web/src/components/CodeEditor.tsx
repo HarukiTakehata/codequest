@@ -1,10 +1,6 @@
 import { useEffect, useRef } from "react";
-import { monaco, setDiagnostics } from "../editor";
+import { LANG_IDS, monaco, setDiagnostics } from "../editor";
 import type { Lang } from "../types";
-
-const LANG_IDS: Record<Lang, string> = {
-  javascript: "javascript", python: "python", cpp: "cpp", shell: "shell",
-};
 
 interface Props {
   value: string;
