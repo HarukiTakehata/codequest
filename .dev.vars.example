@@ -1,0 +1,14 @@
+# 本地开发环境变量（复制为 .dev.vars 后填写）
+TOKEN_PEPPER=replace-with-a-long-random-secret
+ENVIRONMENT=development
+AUTH_MODE=session
+# 注册接口默认关闭；教师/管理员发号是学生账号来源，管理员可额外创建教师账号
+REGISTRATION_ENABLED=false
+# 学习端「管理工作台」入口；本地 Vite 指向 5174，生产可改为独立子域
+ADMIN_URL=http://localhost:5174
+# ADMIN_URL=https://admin.example.com
+# 独立子域部署时设置父域 Cookie（例如 admin.example.com + editor.example.com）：
+# SESSION_COOKIE_DOMAIN=.example.com
+# 管理面板「打开编辑器 / 学员端」链接（生产部署必填）：
+# EDITOR_URL=https://editor.example.com
+# LEARNER_URL=https://learn.example.com

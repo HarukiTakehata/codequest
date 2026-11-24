@@ -1,0 +1,19 @@
+{
+  "id": "sh03_explore_l3",
+  "title": "Bandit L3 · 从诱饵中 grep 令牌",
+  "description": "**目标**：`levels/l3/` 下有多个文件，只有一个包含 `CQ{bandit-three}`。\n\n提示：`grep -R` 不可用，试试 `grep 'CQ{' levels/l3/*.txt` 或逐个 `cat`。",
+  "lang": "shell",
+  "mode": "term",
+  "termMode": "explore",
+  "template": "",
+  "presetFiles": {
+    "/home/student/levels/l3/a.txt": "无关内容\n",
+    "/home/student/levels/l3/b.txt": "令牌：CQ{bandit-three}\n",
+    "/home/student/levels/l3/c.txt": "假令牌：CQ{not-it}\n"
+  },
+  "token": "CQ{bandit-three}",
+  "goals": [
+    { "id": "g-grep", "text": "定位含令牌的文件", "check": { "kind": "file-exists", "path": "/home/student/levels/l3/b.txt" } }
+  ],
+  "requireAllGoals": false
+}

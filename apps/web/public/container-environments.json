@@ -1,0 +1,37 @@
+[
+  {
+    "id": "shell",
+    "name": "Shell",
+    "image": "cq-dev-shell:cn",
+    "bytes": 59341603,
+    "sha256": "460591eeb47bbf4dc948b16a562acb734c233d63eed31899881746c43083bd4d"
+  },
+  {
+    "id": "cpp",
+    "name": "C/C++",
+    "image": "cq-dev-cpp:cn",
+    "bytes": 180765212,
+    "sha256": "1a7a2b5c707265ee1991224cc315f2a6eecc80770108343dde15249bee495f4e"
+  },
+  {
+    "id": "java",
+    "name": "Java",
+    "image": "cq-dev-java:cn",
+    "bytes": 214346872,
+    "sha256": "83aec7c380cdd50b6f141427543c5c6727a57235ed1aa06b23a9f95c44112df1"
+  },
+  {
+    "id": "python",
+    "name": "Python",
+    "image": "cq-dev-python:cn",
+    "bytes": 176050296,
+    "sha256": "bae5701222fdcabe78deed0fc5d0a74a0d91b4f6a982867bc0fd996b5b6c6489"
+  },
+  {
+    "id": "javascript",
+    "name": "JavaScript",
+    "image": "cq-dev-javascript:cn",
+    "bytes": 82317852,
+    "sha256": "4acb17d7e341011b41e34526ce8b8c5f2ee97bdefcba838183c73178d2848ecb"
+  }
+]

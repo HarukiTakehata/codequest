@@ -1,0 +1,11 @@
+{
+  "name": "@codequest/runtime-shell",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/container-runtime.ts",
+  "types": "./src/container-runtime.ts",
+  "dependencies": {
+    "@codequest/judge": "*"
+  }
+}

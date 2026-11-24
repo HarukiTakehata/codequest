@@ -1,0 +1,6 @@
+{
+  "id": "j_c_template",
+  "cases": [
+    { "id": "t1", "name": "模板输出", "stdin": "any\n", "expected": "c-template-ok\n", "mode": "eol" }
+  ]
+}

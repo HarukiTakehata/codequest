@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+set -e
+if [[ "$1" == "save" ]]; then
+  shift
+  args=()
+  while [[ $# -gt 0 ]]; do
+    if [[ "$1" == "--platform" ]]; then
+      shift 2
+      continue
+    fi
+    if [[ "$1" == --platform=* ]]; then
+      shift
+      continue
+    fi
+    args+=("$1")
+    shift
+  done
+  exec /usr/bin/podman save "${args[@]}"
+fi
+exec /usr/bin/podman "$@"

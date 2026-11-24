@@ -1,0 +1,17 @@
+{
+  "id": "sh01_explore",
+  "title": "终端探索：找到令牌",
+  "description": "**目标**：在终端中查看 `/home/student` 目录，从 `secret.txt` 找到形如 `CQ{...}` 的令牌，关闭终端后在剧情输入框提交它。\n\n提示：`ls`、`cat secret.txt`。",
+  "lang": "shell",
+  "mode": "term",
+  "termMode": "explore",
+  "template": "",
+  "presetFiles": {
+    "/home/student/secret.txt": "just a decoy\nCQ{bandit-one}\n"
+  },
+  "token": "CQ{bandit-one}",
+  "goals": [
+    { "id": "g-file", "text": "secret.txt 存在", "check": { "kind": "file-exists", "path": "/home/student/secret.txt" } }
+  ],
+  "requireAllGoals": false
+}

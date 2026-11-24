@@ -1,0 +1,14 @@
+{
+  "id": "ch02_js_sum",
+  "title": "JavaScript 求和",
+  "description": "**目标**：stdin 有两行，每行一个整数，输出它们的和。\n\n提示：`readline()` 每次返回一行字符串，用 `Number()` 转换。",
+  "lang": "javascript",
+  "mode": "code",
+  "template": "const a = Number(readline());\nconst b = Number(readline());\n// TODO: 输出 a + b\nconsole.log(\"TODO\");\n",
+  "judge": "j_js_sum",
+  "goals": [
+    { "id": "g-read", "text": "使用 readline() 读取输入", "check": { "kind": "source-regex", "pattern": "readline\\(" } },
+    { "id": "g-judge", "text": "通过全部测试点", "check": { "kind": "testcase", "all": true } }
+  ],
+  "requireAllGoals": false
+}

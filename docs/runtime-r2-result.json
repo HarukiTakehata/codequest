@@ -1,0 +1,26 @@
+{
+  "status": 200,
+  "encoding": "gzip",
+  "fetchedBytes": 59341603,
+  "fetchedSha": "460591eeb47bbf4dc948b16a562acb734c233d63eed31899881746c43083bd4d",
+  "fetchedMagic": [
+    31,
+    139
+  ],
+  "finalBytes": 158826186,
+  "finalMagic": [
+    0,
+    97,
+    115,
+    109
+  ],
+  "checks": {
+    "http200": true,
+    "bytesMatch": true,
+    "shaMatch": true,
+    "gzipMagic": true,
+    "wasmMagic": true
+  },
+  "browser": "/usr/bin/microsoft-edge",
+  "at": "2026-11-27T14:24:58.115Z"
+}

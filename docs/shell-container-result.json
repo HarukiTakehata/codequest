@@ -1,0 +1,107 @@
+{
+  "ok": true,
+  "result": {
+    "bandit": {
+      "stdout": "decoy\nCQ{bandit-one}\n",
+      "stderr": "",
+      "exitCode": 0,
+      "logs": []
+    },
+    "write": {
+      "stdout": "",
+      "stderr": "",
+      "exitCode": 0,
+      "logs": []
+    },
+    "persist": {
+      "stdout": "persisted\n",
+      "stderr": "",
+      "exitCode": 0,
+      "logs": []
+    },
+    "reset": {
+      "stdout": "",
+      "stderr": "",
+      "exitCode": 0,
+      "logs": []
+    },
+    "script": {
+      "stdout": "      1 a\n      2 b\n",
+      "stderr": "",
+      "exitCode": 0,
+      "logs": []
+    },
+    "stdin": {
+      "stdout": "stdin-ok\n",
+      "stderr": "",
+      "exitCode": 0,
+      "logs": []
+    },
+    "nonzero": {
+      "stdout": "out",
+      "stderr": "err",
+      "exitCode": 7,
+      "logs": []
+    },
+    "goals": {
+      "present": {
+        "file": true,
+        "cmd": true
+      },
+      "missing": {
+        "file": false,
+        "cmd": false
+      }
+    },
+    "timeout": {
+      "stdout": "",
+      "stderr": "Killed\nShell 运行超过 3000ms",
+      "exitCode": 124,
+      "logs": []
+    },
+    "afterTimeout": {
+      "stdout": "AFTER_TIMEOUT\n",
+      "stderr": "",
+      "exitCode": 0,
+      "logs": []
+    },
+    "backgroundSecond": {
+      "stdout": "SECOND\n",
+      "stderr": "",
+      "exitCode": 0,
+      "logs": []
+    },
+    "limit": {
+      "stdout": "",
+      "stderr": "",
+      "exitCode": 141,
+      "logs": [],
+      "bytes": 1048576
+    },
+    "interactive": {
+      "stdout": "cat secret.txt; echo CQ_INTERACTIVE_DONE\r\n$ cat secret.txt; echo CQ_INTERACTIVE_DONE\r\nCQ{interactive-one}\r\nCQ_INTERACTIVE_DONE\r\n",
+      "stderr": "",
+      "exitCode": 0,
+      "logs": []
+    },
+    "runtimeRequests": 1
+  },
+  "checks": {
+    "bandit": true,
+    "write": true,
+    "persist": true,
+    "reset": true,
+    "script": true,
+    "stdin": true,
+    "nonzero": true,
+    "goals": true,
+    "timeout": true,
+    "afterTimeout": true,
+    "background": true,
+    "limit": true,
+    "interactive": true,
+    "cachedAcrossResets": true
+  },
+  "browser": "/usr/bin/microsoft-edge",
+  "at": "2026-11-27T14:23:17.582Z"
+}

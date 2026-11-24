@@ -1,0 +1,14 @@
+{
+  "id": "ch02_java_sum",
+  "title": "Java · 读入两个数并求和",
+  "description": "**目标**：stdin 有两行，每行一个整数，输出 `sum=<两数之和>`。\n\n提示：`new java.util.Scanner(System.in)` 的 `nextInt()` 可逐行读取（由 Vsprocessing fork 提供 stdin 支持）。",
+  "lang": "java",
+  "mode": "code",
+  "template": "import java.util.Scanner;\n\npublic class Main {\n  public static void main(String[] args) {\n    Scanner sc = new Scanner(System.in);\n    int a = sc.nextInt();\n    int b = sc.nextInt();\n    // TODO: 输出 sum=<a+b>\n    System.out.println(\"sum=TODO\");\n  }\n}\n",
+  "judge": "j_java_sum",
+  "goals": [
+    { "id": "g-scanner", "text": "使用 Scanner 读取 stdin", "check": { "kind": "source-regex", "pattern": "Scanner" } },
+    { "id": "g-judge", "text": "通过全部测试点", "check": { "kind": "testcase", "all": true } }
+  ],
+  "requireAllGoals": false
+}

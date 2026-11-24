@@ -1,0 +1,39 @@
+# Dependencies
+node_modules/
+.pnp/
+.pnp.js
+
+# Build outputs
+dist/
+dist-export/
+build/
+*.tsbuildinfo
+/deploy/admin/
+
+# Env & secrets
+.env
+.env.*
+.dev.vars
+*.local
+
+# Editors / OS
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Course authoring scratch
+packs_work/
+
+# Wrangler local state
+.wrangler/
+
+# Runtime WASM artifacts (distributed via R2)
+/runtime/*.wasm
+/runtime/*.wasm.gz

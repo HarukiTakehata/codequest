@@ -1,0 +1,14 @@
+{
+  "id": "ch02_py_sum",
+  "title": "Python 求和",
+  "description": "**目标**：从 stdin 读取两个整数（每行一个），输出它们的和。\n\n提示：`int(input())`。",
+  "lang": "python",
+  "mode": "code",
+  "template": "a = int(input())\nb = int(input())\n# TODO: 输出 a + b\nprint(\"TODO\")\n",
+  "judge": "j_py_sum",
+  "goals": [
+    { "id": "g-input", "text": "使用 input() 读取输入", "check": { "kind": "source-regex", "pattern": "input\\(" } },
+    { "id": "g-judge", "text": "通过全部测试点", "check": { "kind": "testcase", "all": true } }
+  ],
+  "requireAllGoals": false
+}

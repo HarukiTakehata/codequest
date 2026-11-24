@@ -1,0 +1,6 @@
+{
+  "id": "j_c_hello",
+  "cases": [
+    { "id": "t1", "name": "样例", "stdin": "", "expected": "hello from C\n", "mode": "eol" }
+  ]
+}

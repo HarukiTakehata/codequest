@@ -1,0 +1,16 @@
+{
+  "id": "ch03_c_template",
+  "title": "C 模板编译题",
+  "description": "**目标**：运行预编译的 C 程序并通过输出比对。\n\n第一版 C/C++ 使用模板编译模式：课程包附带 wasm，运行时内不在线编译（在线 wasm-clang 属 M3）。",
+  "lang": "cpp",
+  "mode": "code",
+  "template": "/* 模板编译模式：预编译 wasm 由课程包下发。\n   点击「运行」即可观察输出，点击「提交」进行判题。 */\n",
+  "judge": "j_c_template",
+  "presetFiles": {
+    "__template_wasm_base64": "AGFzbQEAAAABDAJgBH9/f38Bf2AAAAIjARZ3YXNpX3NuYXBzaG90X3ByZXZpZXcxCGZkX3dyaXRlAAADAgEBBQMBAAEHEwIGbWVtb3J5AgAGX3N0YXJ0AAEKFgEUAEEUQQA2AgBBAUEAQQFBFBAAGgsLIgIAQQALCGQAAAAOAAAAAEHkAAsOYy10ZW1wbGF0ZS1vawo="
+  },
+  "goals": [
+    { "id": "g-judge", "text": "通过全部测试点", "check": { "kind": "testcase", "all": true } }
+  ],
+  "requireAllGoals": false
+}

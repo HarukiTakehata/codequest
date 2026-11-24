@@ -1,0 +1,7 @@
+{
+  "id": "j_java_sum",
+  "cases": [
+    { "id": "t1", "name": "正数", "stdin": "2\n3\n", "expected": "sum=5\n", "mode": "eol" },
+    { "id": "t2", "name": "负数与零", "stdin": "-4\n4\n", "expected": "sum=0\n", "mode": "eol" }
+  ]
+}

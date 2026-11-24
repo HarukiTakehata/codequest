@@ -1,0 +1,19 @@
+{
+  "ok": true,
+  "checks": {
+    "sizeMatch": true,
+    "decrqmReply": true,
+    "vimRoundTrip": true,
+    "noPageErrors": true
+  },
+  "grid": {
+    "cols": 158,
+    "rows": 24
+  },
+  "sizeOutput": "正在加载 Shell 环境…\n$ stty size; echo CQ_SIZE_'DONE'\n24 158\nCQ_SIZE_DONE\n$  ",
+  "decrqmOutput": "正在加载 Shell 环境… $ stty size; echo CQ_SIZE_'DONE' 24 158 CQ_SIZE_DONE $ echo CQ_DECRQM_'READY'; stty -echo; printf '\\033[?2026$p'; echo CQ_QUERY_'SENT'; IFS= read -r reply; stty echo; printf '%s' \"$reply\" | od -An -tx1; echo CQ_ DECRQM_'DONE' CQ_DECRQM_READY CQ_QUERY_SENT 1b 5b 3f 32 30 32 36 3b 30 24 79 CQ_DECRQM_DONE $ ",
+  "terminalOutput": "正在加载 Shell 环境…\n$ stty size; echo CQ_SIZE_'DONE'\n24 158\nCQ_SIZE_DONE\n$ echo CQ_DECRQM_'READY'; stty -echo; printf '\\033[?2026$p'; echo CQ_QUERY_'SENT'; IFS= read -r reply; stty echo; printf '%s' \"$reply\" | od -An -tx1; echo CQ_\nDECRQM_'DONE'\nCQ_DECRQM_READY\nCQ_QUERY_SENT\n 1b 5b 3f 32 30 32 36 3b 30 24 79\nCQ_DECRQM_DONE\n$ vim cq-vim-test.txt\n$ cat cq-vim-test.txt; echo CQ_VIM_'DONE'\nCQ_VIM_OK\nCQ_VIM_DONE\n$  ",
+  "pageErrors": [],
+  "browser": "/usr/bin/microsoft-edge",
+  "at": "2026-11-27T14:22:39.690Z"
+}

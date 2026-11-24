@@ -1,0 +1,11 @@
+{
+  "name": "@codequest/runtime-pyodide",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/execute.ts",
+  "types": "./src/execute.ts",
+  "dependencies": {
+    "@codequest/judge": "*"
+  }
+}

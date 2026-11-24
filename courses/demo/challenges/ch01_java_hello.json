@@ -1,0 +1,15 @@
+{
+  "id": "ch01_java_hello",
+  "title": "Java · HelloWorld",
+  "description": "**目标**：写一个 Java 程序，向标准输出打印恰好一行 `Hello from Java`。\n\n代码在浏览器 Worker 内由 javac（teavm-javac）编译、TeaVM 转为 WasmGC 后运行；首次编译约需 1–3 秒。可用 API 为 TeaVM classlib 子集。",
+  "lang": "java",
+  "mode": "code",
+  "template": "public class Main {\n  public static void main(String[] args) {\n    // TODO: 输出 Hello from Java\n    System.out.println(\"TODO\");\n  }\n}\n",
+  "judge": "j_java_hello",
+  "goals": [
+    { "id": "g-main", "text": "包含 main 方法", "check": { "kind": "source-regex", "pattern": "static\\s+void\\s+main" } },
+    { "id": "g-out", "text": "输出包含 Hello from Java", "check": { "kind": "output-contains", "value": "Hello from Java" } },
+    { "id": "g-judge", "text": "通过全部测试点", "check": { "kind": "testcase", "all": true } }
+  ],
+  "requireAllGoals": false
+}

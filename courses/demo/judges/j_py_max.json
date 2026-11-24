@@ -1,0 +1,8 @@
+{
+  "id": "j_py_max",
+  "cases": [
+    { "id": "t1", "name": "三个数", "stdin": "3\n1\n9\n4\n", "expected": "9\n", "mode": "eol" },
+    { "id": "t2", "name": "全为负数", "stdin": "1\n-5\n", "expected": "-5\n", "mode": "eol" },
+    { "id": "t3", "name": "重复值", "stdin": "4\n2\n2\n2\n2\n", "expected": "2\n", "mode": "eol" }
+  ]
+}

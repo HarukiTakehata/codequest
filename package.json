@@ -1,0 +1,63 @@
+{
+  "name": "codequest",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run build && wrangler dev",
+    "dev:api": "wrangler dev",
+    "dev:web": "npm --workspace @codequest/web run dev",
+    "dev:admin": "npm --workspace @codequest/admin run dev",
+    "build:web": "npm --workspace @codequest/web run build && node scripts/patch-c2w-workers.mjs",
+    "build:admin": "npm --workspace @codequest/admin run build && node scripts/package-admin.mjs",
+    "build:admin:embedded": "npm --workspace @codequest/admin run build:embedded",
+    "build": "npm run build:web && npm run build:admin && npm run build:admin:embedded",
+    "typecheck": "tsc -p tsconfig.json --noEmit && npm --workspace @codequest/web run typecheck && npm --workspace @codequest/admin run typecheck",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:admin": "npm run build:admin && node scripts/test-admin-panel.mjs",
+    "smoke:admin": "node scripts/smoke-admin-api.mjs",
+    "validate:course": "node scripts/validate-course.mjs courses/demo",
+    "db:migrate": "wrangler d1 migrations apply codequest_local --local",
+    "db:reset": "node scripts/reset-local-db.mjs --yes",
+    "runtime:upload": "node scripts/upload-runtime-assets.mjs",
+    "runtime:upload:remote": "node scripts/upload-runtime-assets.mjs --remote",
+    "container": "node scripts/build-language-container.mjs",
+    "container:list": "node scripts/build-language-container.mjs list",
+    "container:test": "node scripts/test-language-containers.mjs",
+    "test:shell-container": "node scripts/test-shell-container.mjs",
+    "test:container-selector": "node scripts/test-container-selector.mjs",
+    "test:terminal-vim": "node scripts/test-terminal-vim.mjs",
+    "test:runtime-route": "node scripts/test-r2-runtime.mjs",
+    "container:c2w": "node scripts/containers/build-c2w.mjs"
+  },
+  "dependencies": {
+    "hono": "^4.13.23",
+    "lucide-react": "^1.82.0",
+    "ulid": "^2.3.0",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20261127.1",
+    "@live-codes/clang-wasm": "^0.3.0",
+    "@live-codes/java-wasm": "^0.1.0",
+    "@types/react": "^19.3.3",
+    "@types/react-dom": "^19.0.2",
+    "@vitejs/plugin-react": "^4.3.4",
+    "@webvirt/c2w": "^0.1.0",
+    "playwright-core": "^1.65.1",
+    "pyodide": "^314.0.8",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.5",
+    "vitest": "^2.1.8",
+    "wabt": "^1.0.39",
+    "wrangler": "^4.168.0"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  }
+}

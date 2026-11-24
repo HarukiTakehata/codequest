@@ -1,0 +1,8 @@
+{
+  "id": "j_js_fizzbuzz",
+  "cases": [
+    { "id": "t1", "name": "n=5", "stdin": "5\n", "expected": "1\n2\nFizz\n4\nBuzz\n", "mode": "eol" },
+    { "id": "t2", "name": "n=1", "stdin": "1\n", "expected": "1\n", "mode": "eol" },
+    { "id": "t3", "name": "n=15", "stdin": "15\n", "expected": "1\n2\nFizz\n4\nBuzz\nFizz\n7\n8\nFizz\nBuzz\n11\nFizz\n13\n14\nFizzBuzz\n", "mode": "eol" }
+  ]
+}

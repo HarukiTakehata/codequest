@@ -1,0 +1,11 @@
+{
+  "name": "@codequest/runtime-js",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/exec.ts",
+  "types": "./src/exec.ts",
+  "dependencies": {
+    "@codequest/judge": "*"
+  }
+}

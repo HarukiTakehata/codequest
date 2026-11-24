@@ -1,0 +1,7 @@
+{
+  "id": "j_js_hello",
+  "cases": [
+    { "id": "t1", "name": "样例输出", "stdin": "", "expected": "hello\n", "mode": "eol" },
+    { "id": "t2", "name": "忽略 stdin", "stdin": "ignored\n", "expected": "hello\n", "mode": "eol" }
+  ]
+}

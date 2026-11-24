@@ -1,0 +1,44 @@
+{
+  "ok": true,
+  "result": {
+    "options": [
+      {
+        "value": "shell",
+        "disabled": false
+      },
+      {
+        "value": "cpp",
+        "disabled": false
+      },
+      {
+        "value": "java",
+        "disabled": false
+      },
+      {
+        "value": "python",
+        "disabled": false
+      },
+      {
+        "value": "javascript",
+        "disabled": false
+      }
+    ],
+    "initialUrl": "/runtime/cq-dev-shell.wasm?env=shell&bytes=59341603&v=460591eeb47b&sha256=460591eeb47bbf4dc948b16a562acb734c233d63eed31899881746c43083bd4d&requestId=shell",
+    "javascriptUrl": "/runtime/cq-dev-javascript.wasm?env=javascript&bytes=82317852&v=4acb17d7e341&sha256=4acb17d7e341011b41e34526ce8b8c5f2ee97bdefcba838183c73178d2848ecb&requestId=javascript",
+    "shellRequests": 1,
+    "javascriptRequests": 1,
+    "legacyRequested": false,
+    "selectedValue": "javascript",
+    "image": "环境ShellC/C++JavaPythonJavaScript重启容器"
+  },
+  "checks": {
+    "allEnabled": true,
+    "initialNewShell": true,
+    "switched": true,
+    "shellCachedAcrossRestart": true,
+    "javascriptCachedAcrossRestart": true,
+    "noLegacy": true
+  },
+  "browser": "/usr/bin/microsoft-edge",
+  "at": "2026-11-27T14:23:34.399Z"
+}

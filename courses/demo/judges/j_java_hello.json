@@ -1,0 +1,7 @@
+{
+  "id": "j_java_hello",
+  "cases": [
+    { "id": "t1", "name": "HelloWorld", "stdin": "", "expected": "Hello from Java\n", "mode": "eol" },
+    { "id": "t2", "name": "忽略 stdin", "stdin": "anything\n", "expected": "Hello from Java\n", "mode": "eol" }
+  ]
+}
