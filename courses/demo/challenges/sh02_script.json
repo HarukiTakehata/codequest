@@ -1,0 +1,18 @@
+{
+  "id": "sh02_script",
+  "title": "Shell 脚本判题：词频统计",
+  "description": "**目标**：把 `words.txt` 中的单词排序后统计次数，输出 `次数 单词`（每行一条）。\n\n提示：`cat words.txt | sort | uniq -c`。",
+  "lang": "shell",
+  "mode": "term",
+  "termMode": "script",
+  "template": "#!/bin/sh\ncat words.txt | sort | uniq -c\n",
+  "judge": "j_sh_freq",
+  "presetFiles": {
+    "/home/student/words.txt": "b\na\nb\n"
+  },
+  "goals": [
+    { "id": "g-sort", "text": "使用了 sort", "check": { "kind": "source-regex", "pattern": "sort" } },
+    { "id": "g-judge", "text": "通过全部测试点", "check": { "kind": "testcase", "all": true } }
+  ],
+  "requireAllGoals": false
+}

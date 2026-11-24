@@ -1,0 +1,9 @@
+{
+  "id": "codequest-demo",
+  "slug": "demo",
+  "title": "CodeQuest 演示课程",
+  "summary": "四语言入门 + Bandit 式终端探索（第一版最小可用课程包）",
+  "langs": ["javascript", "python", "cpp", "shell"],
+  "difficulty": "beginner",
+  "entry": "start.txt"
+}

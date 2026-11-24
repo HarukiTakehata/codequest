@@ -1,0 +1,6 @@
+{
+  "id": "j_sh_freq",
+  "cases": [
+    { "id": "t1", "name": "词频", "stdin": "", "expected": "1 a\n2 b\n", "mode": "ws" }
+  ]
+}

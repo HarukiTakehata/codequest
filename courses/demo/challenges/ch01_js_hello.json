@@ -1,0 +1,15 @@
+{
+  "id": "ch01_js_hello",
+  "title": "让屏幕说 hello",
+  "description": "**目标**：输出恰好一行 `hello`。\n\n在 JavaScript 中，`console.log()` 会向 stdout 写入一行。stdin 可以用 `readline()` 逐行读取（本题不需要）。",
+  "lang": "javascript",
+  "mode": "code",
+  "template": "// TODO: 用 console.log 输出 hello\nconsole.log(\"TODO\");\n",
+  "judge": "j_js_hello",
+  "goals": [
+    { "id": "g-log", "text": "使用 console.log 输出", "check": { "kind": "source-regex", "pattern": "console\\.log" } },
+    { "id": "g-out", "text": "输出中包含 hello", "check": { "kind": "output-contains", "value": "hello" } },
+    { "id": "g-judge", "text": "通过全部测试点", "check": { "kind": "testcase", "all": true } }
+  ],
+  "requireAllGoals": false
+}

@@ -29,3 +29,6 @@ npm-debug.log*
 
 # Course authoring scratch
 packs_work/
+
+# Wrangler local state
+.wrangler/

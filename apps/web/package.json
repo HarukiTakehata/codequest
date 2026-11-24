@@ -1,0 +1,29 @@
+{
+  "name": "@codequest/web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@codequest/judge": "*",
+    "@codequest/runtime-clang": "*",
+    "@codequest/runtime-js": "*",
+    "@codequest/runtime-pyodide": "*",
+    "@codequest/runtime-shell": "*",
+    "monaco-editor": "^0.52.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.3",
+    "@types/react-dom": "^19.0.2",
+    "@vitejs/plugin-react": "^4.3.4",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.5"
+  }
+}

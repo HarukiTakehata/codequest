@@ -1,0 +1,7 @@
+{
+  "id": "j_py_sum",
+  "cases": [
+    { "id": "t1", "name": "样例", "stdin": "1\n2\n", "expected": "3\n", "mode": "eol" },
+    { "id": "t2", "name": "大数", "stdin": "10\n20\n", "expected": "30\n", "mode": "eol" }
+  ]
+}

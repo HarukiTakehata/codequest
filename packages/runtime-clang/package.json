@@ -1,0 +1,11 @@
+{
+  "name": "@codequest/runtime-clang",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/template.ts",
+  "types": "./src/template.ts",
+  "dependencies": {
+    "@codequest/judge": "*"
+  }
+}

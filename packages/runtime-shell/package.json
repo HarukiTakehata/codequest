@@ -1,0 +1,11 @@
+{
+  "name": "@codequest/runtime-shell",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/shell.ts",
+  "types": "./src/shell.ts",
+  "dependencies": {
+    "@codequest/judge": "*"
+  }
+}

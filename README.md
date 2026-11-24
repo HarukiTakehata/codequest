@@ -6,7 +6,18 @@
 
 ## 状态
 
-设计阶段。里程碑 M0（账号与课程下发）未开始——实现工作从 M0/M1 起步，详见设计书 §8。
+**第一版最小可用（v0.1）已实现**：M0 账号与课程下发、M1 剧情骨架、M2 双语言判题（JS + Python）全部打通；
+C/C++ 以预编译 wasm 模板模式、Shell 以内存文件系统教学子集提供可玩形态。详见
+[实现说明](docs/实现说明.md) 与 [课程包格式](docs/课程包格式.md)，里程碑仍以设计书 §8 为准。
+
+```bash
+npm install --registry https://registry.npmmirror.com
+cp .dev.vars.example .dev.vars   # 填入 TOKEN_PEPPER
+npm run db:migrate && npm run dev # http://localhost:8787
+npm test                         # 判题 / 运行时 / 后端 / 剧情验收
+```
+
+演示课程位于 `courses/demo/`（四语言 + Bandit 式令牌关卡），验收：`npm run validate:course`。
 
 ## 仓库布局（规划）
 

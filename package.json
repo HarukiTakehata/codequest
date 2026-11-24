@@ -1,0 +1,42 @@
+{
+  "name": "codequest",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run build:web && wrangler dev",
+    "dev:api": "wrangler dev",
+    "dev:web": "npm --workspace @codequest/web run dev",
+    "build:web": "npm --workspace @codequest/web run build",
+    "build": "npm run build:web",
+    "typecheck": "tsc -p tsconfig.json --noEmit && npm --workspace @codequest/web run typecheck",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "validate:course": "node scripts/validate-course.mjs courses/demo",
+    "db:migrate": "wrangler d1 migrations apply codequest_local --local"
+  },
+  "dependencies": {
+    "hono": "^4.6.14",
+    "ulid": "^2.3.0",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20261102.1",
+    "@types/react": "^19.0.3",
+    "@types/react-dom": "^19.0.2",
+    "@vitejs/plugin-react": "^4.3.4",
+    "pyodide": "^314.0.8",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.5",
+    "vitest": "^2.1.8",
+    "wabt": "^1.0.39",
+    "wrangler": "^4.0.0"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
