@@ -1,6 +1,7 @@
 import type { RunRequest, RunResponse } from "@codequest/judge";
 
-export const PYODIDE_CDN = "https://cdn.jsdelivr.net/pyodide/v0.27.7/full/";
+/** Pyodide 运行时工件已 vendored 到 apps/web/public/pyodide（无 CDN 依赖）。 */
+export const PYODIDE_BASE = "/pyodide/";
 
 /** 在用户代码之前注入：patch stdin/stdout/stderr，提供 input()（设计 §5.2）。 */
 export const PYTHON_BOOTSTRAP = `

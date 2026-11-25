@@ -20,13 +20,14 @@ describe("Container Shell 模式：最小镜像快照已植入前端", () => {
     expect(applets).toContain("netstat");
   });
 
-  it("ContainerShell 独立组件使用 wasi-sh 执行，不进入剧情", () => {
+  it("ContainerShell 直接对接 c2w 容器字节流，不拦截命令", () => {
     const source = read("apps/web/src/components/ContainerShell.tsx");
-    expect(source).toContain("openShellSession");
+    expect(source).toContain("createContainer");
+    expect(source).toContain("cq-minimal.wasm");
     expect(source).toContain("new Terminal");
-    expect(source).toContain("terminal.onData");
-    expect(source).toContain("terminal.onResize");
-    expect(source).toContain("vi");
+    expect(source).toContain("term.onData");
+    expect(source).toContain("stdio.stdin");
+    expect(source).not.toContain("setEditor");
     expect(source).not.toContain("Stage");
   });
 });

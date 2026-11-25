@@ -43,7 +43,8 @@ description: 维护 CodeQuest 最小容器镜像、Container Shell、运行时 W
 ## 4. 前端红线
 
 - 不使用 emoji/文字符号图标：统一 `lucide-react`。守卫测试 `tests/frontend/no-emoji.test.ts`。
-- Pyodide worker 是 ES module，**禁止 `importScripts`**；用 `await import(${PYODIDE_CDN}pyodide.mjs)`。
+- Pyodide worker 是 ES module，**禁止 `importScripts`**；工件已本地化到 `apps/web/public/pyodide/`，
+  用 `await import(${PYODIDE_BASE}pyodide.mjs)` + `loadPyodide({ indexURL })`，不依赖 CDN。
   守卫测试 `tests/frontend/pyodide-worker.test.ts`。
 - 用户代码只在 Worker/WASM 内执行；主线程不得 `eval` 或跑用户代码（AGENTS.md #4）。
 - Monaco worker 接线用 `worker: { format: "es" }`（vite.config.ts），否则 IIFE + code splitting 会构建失败。

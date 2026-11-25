@@ -9,6 +9,7 @@ describe("Pyodide Worker 协议一致性", () => {
     const worker = read("packages/runtime-pyodide/src/worker.ts");
     expect(worker).not.toMatch(/importScripts\s*\(/);
     expect(worker).toContain("pyodide.mjs");
+    expect(worker).toContain("PYODIDE_BASE");
   });
 
   it("client 以 ES module worker 启动，并设置超时终止", () => {

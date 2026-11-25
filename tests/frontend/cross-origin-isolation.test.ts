@@ -18,10 +18,13 @@ describe("Container Shell 跨源隔离（SharedArrayBuffer 前提）", () => {
     expect(config).toContain("preview:");
   });
 
-  it("Pyodide CDN 资源带 CORS 与 CORP，不会被 COEP 阻断", () => {
-    // 静态证据由 README/构建记录维护；此处只确保运行时入口使用 CDN ESM。
+  it("Pyodide 工件全部本地化，不被 COEP/CORS 阻断", () => {
     const execute = read("packages/runtime-pyodide/src/execute.ts");
-    expect(execute).toContain("PYODIDE_CDN");
-    expect(execute).toContain("jsdelivr.net");
+    expect(execute).toContain("PYODIDE_BASE");
+    expect(execute).toContain('"/pyodide/"');
+    expect(execute).not.toContain("jsdelivr.net");
+    const worker = read("packages/runtime-pyodide/src/worker.ts");
+    expect(worker).toContain("new URL(PYODIDE_BASE, self.location.href)");
+    expect(worker).toContain("pyodide.mjs");
   });
 });

@@ -8,8 +8,9 @@ self.addEventListener("install", (event) => {
     const cache = await caches.open(CACHE);
     const urls = [...CORE];
     try {
-      const [clangRes, javaRes] = await Promise.all([
+      const [clangRes, javaRes, pyodideRes] = await Promise.all([
         fetch("/clang/asset-receipts.json"), fetch("/java/manifest.json"),
+        fetch("/pyodide/asset-receipts.json"),
       ]);
       if (clangRes.ok) {
         const receipts = await clangRes.json();
@@ -18,6 +19,10 @@ self.addEventListener("install", (event) => {
       if (javaRes.ok) {
         const files = await javaRes.json();
         for (const name of files) urls.push(`/java/${name}`);
+      }
+      if (pyodideRes.ok) {
+        const receipts = await pyodideRes.json();
+        for (const name of Object.keys(receipts)) urls.push(`/pyodide/${name}`);
       }
     } catch { /* 离线时退回核心资源 */ }
     await Promise.allSettled(urls.map(async (url) => {
@@ -39,7 +44,7 @@ self.addEventListener("activate", (event) => {
 self.addEventListener("fetch", (event) => {
   const url = new URL(event.request.url);
   if (event.request.method !== "GET" || url.origin !== location.origin) return;
-  if (!/^\/(clang|java)\//.test(url.pathname) && url.pathname !== "/shell-applets.txt") return;
+  if (!/^\/(clang|java|pyodide)\//.test(url.pathname) && url.pathname !== "/shell-applets.txt") return;
   event.respondWith((async () => {
     const cache = await caches.open(CACHE);
     const cached = await cache.match(event.request);
