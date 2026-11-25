@@ -17,7 +17,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "validate:course": "node scripts/validate-course.mjs courses/demo",
-    "db:migrate": "wrangler d1 migrations apply codequest_local --local"
+    "db:migrate": "wrangler d1 migrations apply codequest_local --local",
+    "db:reset": "node scripts/reset-local-db.mjs --yes"
   },
   "dependencies": {
     "hono": "^4.6.14",
