@@ -68,7 +68,7 @@ mkdir -p /out/rootfs/bin /out/rootfs/sbin /out/rootfs/usr/bin /out/rootfs/proc \
 cp busybox /out/rootfs/bin/busybox
 chmod +x /out/rootfs/bin/busybox
 for applet in sh ash awk cat chmod cp cut echo find grep head ls md5sum mkdir mv nc \\
-              netstat pgrep ps pwd rm sed sort stat tail test touch tr uniq wc vi; do
+              netstat pgrep pidof ps pwd rm sed sleep sort stat tail test touch tr uniq wc vi; do
   ln -sf /bin/busybox "/out/rootfs/bin/\${applet}" 2>/dev/null || true
 done
 ln -sf /bin/busybox /out/rootfs/sbin/init
@@ -88,7 +88,8 @@ writeFileSync(`${work}/Containerfile`, containerfile);
 
 run("podman", ["build", "--platform", "linux/amd64", "-t", BUILD_IMAGE, "-f", `${work}/Containerfile`, work]);
 run("podman", ["create", "--name", "cq-minimal-extract", BUILD_IMAGE, "true"]);
-run("podman", ["cp", "cq-minimal-extract:/out/rootfs", `${work}/rootfs`]);
+// 目标目录已存在时，必须加 /. 复制目录内容，否则会形成 rootfs/rootfs 嵌套。
+run("podman", ["cp", "cq-minimal-extract:/out/rootfs/.", `${work}/rootfs`]);
 run("podman", ["rm", "-f", "cq-minimal-extract"]);
 
 console.log(`最小根文件系统已生成: ${work}/rootfs`);

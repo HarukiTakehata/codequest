@@ -60,6 +60,22 @@ cat words.txt | sort | uniq -c               →  "      1 a\n      2 b\n"  exit
 `gh-proxy.org`（GitHub git clone 与 release 下载）、`goproxy.cn`（Go modules）、
 rootless podman 的 `mknod` 降级。这些做法记录在 `/tmp/opencode/Dockerfile.c2w` 的构建过程中。
 
+**最小镜像的 loopback 实测（2026-11-25）**：`scripts/build-minimal-shell-cn.mjs` 用清华 apk 源 +
+`gh-proxy.org` 拉取 busybox 1.38.0 源码，在 Alpine/musl 下静态编译，产出 1.2MB rootfs（407 applet）
+并打成 `cq-minimal:cn`（`FROM scratch`，无 Ubuntu）。`scripts/test-minimal-rootfs.mjs` 在该容器内实测：
+
+```
+PASS shell 与基础命令
+PASS 文件读写与查找
+PASS 文本处理（grep/sort/uniq/wc/awk/tr/cut）
+PASS 进程检查（ps/pgrep/pidof）
+PASS 容器内 loopback 监听（nc -l -p 8080 127.0.0.1 + netstat -ltn）
+5/5 checks passed
+```
+
+这证明**教学镜像工具集与容器内 loopback 监听**本身可行（真实 Linux 容器 + 宿主内核）。
+注意：这不等于 container2wasm 模拟内核内的可行性结论——后者受 Bochs/QEMU 模拟层影响，仍未实测。
+
 **生产结论（2026-11-25，用户反馈「耗时太久」后确认）**：
 - Bochs/TinyEMU 全系统模拟 + 109MB wasm 的冷启动远慢于交互式教学可接受范围；
   `scripts/spike-loopback.mjs` 的浏览器探针在 300s / 900s 量级内未得到结论，且 headless Firefox
