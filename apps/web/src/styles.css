@@ -137,6 +137,8 @@ button .icon-text { gap: 6px; }
 .container-shell header > div { display: flex; align-items: center; gap: 10px; }
 .terminal-shell-window { display: flex; flex-direction: column; height: 60vh; min-height: 360px;
   background: #070b1c; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.xterm-host { flex: 1; min-height: 0; padding: 10px 12px; overflow: hidden; }
+.xterm-host .xterm { height: 100%; }
 .terminal-output { flex: 1; margin: 0; padding: 16px; overflow: auto; background: #070b1c; color: #b8f0c8; font-family: ui-monospace, monospace; font-size: .85rem; white-space: pre-wrap; }
 .terminal-input { display: flex; gap: 8px; align-items: center; padding: 10px 16px; border-top: 1px solid var(--line); }
 .terminal-input button { padding: 8px 16px; border-radius: 8px; border: 0; background: var(--accent); color: #0b1026; font-weight: 700; }

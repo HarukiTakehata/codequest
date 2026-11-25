@@ -23,6 +23,9 @@ describe("Container Shell 模式：最小镜像快照已植入前端", () => {
   it("ContainerShell 独立组件使用 wasi-sh 执行，不进入剧情", () => {
     const source = read("apps/web/src/components/ContainerShell.tsx");
     expect(source).toContain("openShellSession");
+    expect(source).toContain("new Terminal");
+    expect(source).toContain("terminal.onData");
+    expect(source).toContain("terminal.onResize");
     expect(source).toContain("vi");
     expect(source).not.toContain("Stage");
   });

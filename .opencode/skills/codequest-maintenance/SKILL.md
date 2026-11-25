@@ -58,6 +58,17 @@ description: 维护 CodeQuest 最小容器镜像、Container Shell、运行时 W
 2. 网络：镜像 `docker.1ms.run`；GitHub git clone/release 走 `gh-proxy.org`；Go modules 走 `goproxy.cn`。
 3. rootless podman：`mknod` 不可用，用 `touch` 降级；必要时 `--security-opt label=disable`。
 4. 先用 `c2w --show-dockerfile` 导出模板做基线，逐段替换镜像来源；每改一层利用 podman 缓存继续。
+   Alpine 化替换表（已实测）：
+   - `FROM ubuntu*` / `FROM ubuntu:22.04` → `FROM docker.io/library/alpine:3.22`，并在每个 Alpine
+     FROM 后 `sed -i 's|dl-cdn.alpinelinux.org|mirrors.tuna.tsinghua.edu.cn|g' /etc/apk/repositories`。
+   - `apt-get install -y` → `apk add --no-cache`；`build-essential` → `build-base`，
+     `linux-libc-dev-*-cross` → `linux-headers`，`gcc-*-linux-gnu` → `gcc`，
+     `libc-dev-*-cross` → `musl-dev`，`libelf-dev` → `elfutils-dev`。
+   - 所有 `git clone` 前加 `-c url."https://gh-proxy.org/https://github.com/".insteadOf="https://github.com/"`。
+   - 内核/busybox 编译阶段必须补 `musl-dev linux-headers make gcc`，并移除 Ubuntu 风格
+     `CROSS_COMPILE=x86_64-linux-gnu-`（Alpine/musl 原生工具链不需要）。
+   - busybox `make defconfig` 后禁用 `CONFIG_TC`（新版内核头缺 CBQ 宏），否则 `networking/tc.c` 编译失败。
+5. 每失败一层只改该层，podman 会复用之前缓存；不要从头重跑所有层。
 5. 产物后在真实容器跑 `scripts/test-minimal-rootfs.mjs` 的 loopback 项；浏览器侧 spike 用
    `scripts/spike-loopback.mjs`（需 COOP/COEP 与 headless Firefox）。
 6. 若冷启动仍超交互教学可接受范围，记录结论，不把容器会话放进 v1 主链路（设计书 §5.5 降级条款）。
