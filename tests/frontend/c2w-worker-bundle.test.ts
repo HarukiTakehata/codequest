@@ -14,6 +14,8 @@ describe("c2w worker 裸模块改写", () => {
     expect(script).toContain("/vendor/comlink/comlink.mjs");
     expect(script).toContain("/vendor/browser_wasi_shim/index.js");
     expect(script).toMatch(/ring-buffer-worker\|vm-worker/);
+    expect(script).toContain("DecompressionStream");
+    expect(script).toContain("application/wasm");
   });
 
   it("Vite 禁止把 worker 内联为 data URL", () => {

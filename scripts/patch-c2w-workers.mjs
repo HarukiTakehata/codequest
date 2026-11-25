@@ -19,6 +19,11 @@ cpSync(resolve(root, "node_modules/@bjorn3/browser_wasi_shim/dist"), resolve(ven
 const replacements = [
   [/from\s*["']comlink["']/g, 'from"/vendor/comlink/comlink.mjs"'],
   [/from\s*["']@bjorn3\/browser_wasi_shim["']/g, 'from"/vendor/browser_wasi_shim/index.js"'],
+  // fetch() 在 worker 里不会替 instantiateStreaming 解 gzip，得到 1f 8b 而非 wasm magic。
+  [
+    /L\?\$\(t,e\):fetch\(t\)/g,
+    'L?$(t,e):fetch(t).then(async r=>r.headers.get("content-encoding")?.includes("gzip")&&r.body?new Response(r.body.pipeThrough(new DecompressionStream("gzip")),{headers:{"Content-Type":"application/wasm"}}):r)',
+  ],
 ];
 
 let patched = 0;
