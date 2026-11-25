@@ -25,10 +25,6 @@ export function ContainerShell({ onBack }: Props) {
 
     let container;
     try {
-      const probe = await fetch(wasmUrl, { method: "HEAD" });
-      if (!probe.ok) throw new Error(`HTTP ${probe.status} — 请先执行 npm run runtime:upload`);
-      const contentType = probe.headers.get("content-type") ?? "";
-      if (!contentType.includes("application/wasm")) throw new Error(`返回类型不是 wasm: ${contentType}`);
       const { createContainer } = await import("@webvirt/c2w");
       container = await createContainer({
         wasmUrl,
