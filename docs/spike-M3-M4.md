@@ -53,7 +53,16 @@ cat words.txt | sort | uniq -c               →  "      1 a\n      2 b\n"  exit
 已作为 shell 脚本判题的默认运行时（`packages/runtime-shell/src/wasi-client.ts`），课程 `sh02_script` 参考解通过真实判题器（`tests/acceptance/shell-wasi.test.ts`）。
 `goals` 的 `file-exists`/`command-stdout` 由内存教学 shell 会话回传的 `files` 求值（`TerminalWorkbench`）。
 
-### container2wasm 容器会话 + loopback 端口：⚠️ 环境受限，未完成实测
+### container2wasm 容器会话 + loopback 端口：🔄 转换进行中（镜像源已解决）
+
+2026-11-25 用户提供 `docker.1ms.run` 镜像源后，已从该源拉齐并 tag：
+`emscripten/emsdk:3.1.40`、`:4.0.10`、`tonistiigi/binfmt:qemu-v6.1.0`（daocloud 白名单缺这三个）。
+c2w 转换此前停在 10/127 步，原因是 Go 模块走 `proxy.golang.org` 超时；已在生成的 Dockerfile
+的 golang stage 注入 `GOPROXY=https://goproxy.cn,direct`、`GOSUMDB=off`，转换重跑中。
+转换完成后用 `scripts/spike-loopback.mjs` 在真实容器里跑
+`nc -l 127.0.0.1 8080 & netstat -ltn`，结果写入 `docs/spike-loopback-result.json`。
+
+### 历史记录：环境受限阶段（已被上面的镜像源进展取代）
 
 实测记录（`node scripts/spike-m3m4.mjs` + podman）：
 
