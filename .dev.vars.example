@@ -4,3 +4,5 @@ ENVIRONMENT=development
 AUTH_MODE=session
 # 注册接口默认关闭；管理员批量发号是唯一的学员账号来源
 REGISTRATION_ENABLED=false
+# 独立子域部署时设置父域 Cookie（例如 admin.example.com + editor.example.com）：
+# SESSION_COOKIE_DOMAIN=.example.com

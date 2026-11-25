@@ -7,6 +7,11 @@ export interface Env {
   ENVIRONMENT?: string;
   AUTH_MODE?: "session";
   REGISTRATION_ENABLED?: string | boolean;
+  /**
+   * 可选：会话 Cookie 的 Domain。部署到 admin./editor. 这类独立子域时设为父域
+   * （例如 `.example.com`），让编辑器能复用管理面板的管理员会话。
+   */
+  SESSION_COOKIE_DOMAIN?: string;
 }
 
 export interface UserRow {

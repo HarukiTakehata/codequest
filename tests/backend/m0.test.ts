@@ -157,6 +157,22 @@ describe("M0 · 账号与课程下发（设计书 §8 验收标准）", () => {
     expect(progress.progress.challenges.ch01).toMatchObject({ passed: true });
     expect(progress.progress.hints).toEqual(["h1", "h2"]);
   });
+
+  it("父域会话 Cookie 与管理员校验接口支持独立编辑器子域", async () => {
+    const f = fixture({ SESSION_COOKIE_DOMAIN: ".example.test" });
+    const response = await f.call("/api/v1/setup", {
+      instance_name: "测试实例",
+      admin: { email: "admin@example.test", password: "admin-password-123" },
+    });
+    expect(response.status).toBe(201);
+    const setCookie = response.headers.get("set-cookie")!;
+    expect(setCookie).toContain("Domain=.example.test");
+    const admin = setCookie.split(";")[0]!;
+
+    // nginx auth_request：管理员 204，未登录 401。
+    expect((await f.call("/api/v1/admin/check", undefined, admin)).status).toBe(204);
+    expect((await f.call("/api/v1/admin/check")).status).toBe(401);
+  });
 });
 
 function loginCookie(response: Response): string {

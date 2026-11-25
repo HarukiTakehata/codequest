@@ -24,6 +24,12 @@ adminRoutes.use("*", async (c, next) => {
   await requireAdmin(c, next);
 });
 
+/**
+ * 供 nginx `auth_request` 校验管理员会话（独立子域部署的编辑器使用）。
+ * 204 = 放行；401 / 403 = 拒绝，由 nginx 直接返回给浏览器。
+ */
+adminRoutes.get("/check", (c) => c.body(null, 204));
+
 const batchSchema = z.object({ csv: z.string().min(1).max(200_000), filename: z.string().max(120).optional() });
 const packSchema = z.object({ pack: z.record(z.string()) });
 

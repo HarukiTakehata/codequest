@@ -14,10 +14,18 @@ function isSecure(c: Context<AppEnv>): boolean {
   return new URL(c.req.url).protocol === "https:";
 }
 
+/** 独立子域部署时，把会话 Cookie 落到父域，供 admin./editor. 共用。 */
+function sessionCookieDomain(c: Context<AppEnv>): string | undefined {
+  const domain = c.env.SESSION_COOKIE_DOMAIN?.trim();
+  return domain ? domain : undefined;
+}
+
 function setSessionCookie(c: Context<AppEnv>, token: string): void {
+  const domain = sessionCookieDomain(c);
   setCookie(c, COOKIE_NAME, token, {
     httpOnly: true, secure: isSecure(c), sameSite: "Lax", path: "/",
     maxAge: TTL_DAYS * 24 * 60 * 60,
+    ...(domain ? { domain } : {}),
   });
 }
 
@@ -97,7 +105,11 @@ export async function updatePassword(
 }
 
 export function clearSessionCookie(c: Context<AppEnv>): void {
-  deleteCookie(c, COOKIE_NAME, { path: "/" });
+  const domain = sessionCookieDomain(c);
+  deleteCookie(c, COOKIE_NAME, {
+    path: "/",
+    ...(domain ? { domain } : {}),
+  });
 }
 
 export async function recordAuthEvent(
