@@ -32,9 +32,12 @@ const runner = await readFile(`${tmp}/runner.js`, "utf8");
 const html = `<!doctype html><html><body><script src="/runner.js"></script><script>
 (async () => {
   const post = (body) => fetch('/done', { method: 'POST', body: JSON.stringify(body) });
+  const progress = (stage) => fetch('/progress', { method: 'POST', body: stage });
   try {
+    await progress('page-loaded');
     const out = await window.runContainer(["/bin/sh", "-c",
       "nc -l 127.0.0.1 8080 >/dev/null 2>&1 & sleep 2; netstat -ltn; echo LOOPBACK_MARKER"]);
+    await progress('container-returned');
     await post({ ok: true, output: out.slice(-4000) });
   } catch (error) { await post({ ok: false, error: String(error), stack: String(error.stack ?? '') }); }
 })();
@@ -42,14 +45,20 @@ const html = `<!doctype html><html><body><script src="/runner.js"></script><scri
 
 let finish;
 const done = new Promise((r) => { finish = r; });
+let currentStage = "starting";
 const headers = {
   "Cross-Origin-Opener-Policy": "same-origin",
   "Cross-Origin-Embedder-Policy": "require-corp",
 };
 const server = http.createServer(async (req, res) => {
+  console.log("REQ " + req.url);
   if (req.url === "/done") {
     let body = ""; for await (const chunk of req) body += chunk;
     res.writeHead(204); res.end(); finish(body); return;
+  }
+  if (req.url === "/progress") {
+    let body = ""; for await (const chunk of req) body += chunk;
+    res.writeHead(204); res.end(); currentStage = body; console.log("PROGRESS " + body); return;
   }
   if (req.url === "/") { res.writeHead(200, { ...headers, "Content-Type": "text/html" }); res.end(html); return; }
   if (req.url === "/runner.js") { res.writeHead(200, { ...headers, "Content-Type": "text/javascript" }); res.end(runner); return; }
@@ -61,8 +70,10 @@ const server = http.createServer(async (req, res) => {
 });
 await new Promise((r) => server.listen(port, "127.0.0.1", r));
 console.log("SERVER_READY");
-const browser = spawn(firefox, ["--headless", "--user-data-dir", `${tmp}/profile`, `http://127.0.0.1:${port}/`], { stdio: "ignore" });
-const timer = setTimeout(() => finish(JSON.stringify({ ok: false, timeout: true })), 300_000);
+const { rmSync } = await import("node:fs");
+rmSync(`${tmp}/profile`, { recursive: true, force: true });
+const browser = spawn(firefox, ["--headless", "--user-data-dir", `${tmp}/profile`, `http://127.0.0.1:${port}/`], { stdio: ["ignore", "ignore", "inherit"] });
+const timer = setTimeout(() => finish(JSON.stringify({ ok: false, timeout: true, stage: currentStage })), 900_000);
 const raw = await done;
 clearTimeout(timer); browser.kill("SIGTERM"); server.close();
 console.log("RESULT " + raw);

@@ -53,7 +53,24 @@ cat words.txt | sort | uniq -c               →  "      1 a\n      2 b\n"  exit
 已作为 shell 脚本判题的默认运行时（`packages/runtime-shell/src/wasi-client.ts`），课程 `sh02_script` 参考解通过真实判题器（`tests/acceptance/shell-wasi.test.ts`）。
 `goals` 的 `file-exists`/`command-stdout` 由内存教学 shell 会话回传的 `files` 求值（`TerminalWorkbench`）。
 
-### container2wasm 容器会话 + loopback 端口：🔄 转换进行中（镜像源已解决）
+### container2wasm 容器会话 + loopback 端口：⚠️ 转换成功但生产耗时不可接受，v1 不纳入主链路
+
+**转换已成功**：`EXIT=0`，产物 `/tmp/opencode/cq-teaching.wasm` **109MB**（教学镜像 alpine + procps + iproute2 + busybox-extras，127 步构建）。
+镜像源与网络问题均已解决：`docker.1ms.run`（emsdk/binfmt/ubuntu:latest）、
+`gh-proxy.org`（GitHub git clone 与 release 下载）、`goproxy.cn`（Go modules）、
+rootless podman 的 `mknod` 降级。这些做法记录在 `/tmp/opencode/Dockerfile.c2w` 的构建过程中。
+
+**生产结论（2026-11-25，用户反馈「耗时太久」后确认）**：
+- Bochs/TinyEMU 全系统模拟 + 109MB wasm 的冷启动远慢于交互式教学可接受范围；
+  `scripts/spike-loopback.mjs` 的浏览器探针在 300s / 900s 量级内未得到结论，且 headless Firefox
+  在并发探针后进入不稳定状态。继续在该路径上投入不属于「最小可用」范围。
+- 设计书 §5.2 / §9 本就把容器会话定位为「慢、可用但非即时」，并给出降级条款（§5.5）。
+  因此 **v1 学习主链路不走 container2wasm**：shell 教学与判题全部走 `wasi-sh`（毫秒级，
+  实测见上文）与内存教学 shell；端口类关卡不纳入课程。
+- 容器会话保留为后续独立里程碑（带 wizer 预热快照 / 后台预启动 / SW 缓存 109MB 工件）的候选，
+  不在 M4 验收口径内宣称完成。
+
+### 历史记录：镜像源与转换过程
 
 2026-11-25 用户提供 `docker.1ms.run` 镜像源后，已从该源拉齐并 tag：
 `emscripten/emsdk:3.1.40`、`:4.0.10`、`tonistiigi/binfmt:qemu-v6.1.0`（daocloud 白名单缺这三个）。
