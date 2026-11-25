@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api, type CourseInfo, type CoursePack, type Progress, type User } from "./api";
+import { CONTAINER_SHELL_ENABLED } from "./features";
 import { Stage } from "./components/Stage";
 import { FreeMode } from "./components/FreeMode";
 import { ContainerShell } from "./components/ContainerShell";
@@ -56,12 +57,14 @@ export default function App() {
       user={user}
       onOpen={(c) => void openCourse(c)}
       onFree={() => setView("free")}
-      onContainer={() => setView("container")}
+      onContainer={() => { if (CONTAINER_SHELL_ENABLED) setView("container"); }}
       onLogout={() => { setUser(null); setView("login"); }}
     />;
   }
   if (view === "free") return <FreeMode onBack={() => setView("courses")} />;
-  if (view === "container") return <ContainerShell onBack={() => setView("courses")} />;
+  if (view === "container" && CONTAINER_SHELL_ENABLED) {
+    return <ContainerShell onBack={() => setView("courses")} />;
+  }
   if (view === "game" && course && pack) {
     return <Stage courseId={course.id} pack={pack} progress={progress} onBack={() => setView("courses")} />;
   }

@@ -82,7 +82,47 @@ description: 维护 CodeQuest 最小容器镜像、Container Shell、运行时 W
   commit message 末尾加 `🤖 自动提交：Hermes Agent`；本机 gpg 签名超时时用 `-c commit.gpgsign=false`。
 - 上游 WebGAL 改动只在 fork（`HarukiTakehata/WebGAL`），不要改主仓库第三方目录（AGENTS.md #1）。
 
-## 7. 关键文档
+## 7. Container Shell 暂时搁置（2026-11-25）
+
+用户决定暂时搁置 shell 模式并另找方案。代码、镜像、wasm 与资产**全部保留**，只关闭入口：
+`apps/web/src/features.ts` 的 `CONTAINER_SHELL_ENABLED = false`；重新启用时改为 `true` 即可。
+
+### 已解决的技术障碍（若重启务必先看）
+
+1. **Workers Assets 单文件 25MiB 上限**：c2w wasm 98.1MiB（102,911,856 字节）不能放 `public/`。
+   现状：gzip 到 37MB 存 `runtime/cq-minimal.wasm.gz`，Worker 路由
+   `GET /runtime/cq-minimal.wasm` 从 R2 返回 `application/wasm` + `Content-Encoding: gzip`。
+   上传命令 `npm run runtime:upload`（本地）/ `npm run runtime:upload:remote`（线上）。
+2. **Vite 把 c2w worker 内联成 data URL**，其中裸 `from "comlink"` 在 module worker 无法解析，
+   `createContainer()` 永久挂起且不报错：设置 `build.assetsInlineLimit = 0`，
+   并由 `scripts/patch-c2w-workers.mjs` 把 `comlink` / `@bjorn3/browser_wasi_shim`
+   改写到 `/vendor/...`（已接入 `npm run build:web`）。
+3. **gzip magic 错误**：worker 的 `fetch()` 不会替 `instantiateStreaming` 解压；
+   patch 脚本在 `fetchFile` 中用 `DecompressionStream("gzip")` 解压后再交给 wasm 实例化。
+4. **Vite dev 代理**：`vite.config.ts` 必须代理 `/runtime` 到 `http://localhost:8787`，否则 wasm 请求落到 SPA fallback。
+5. **跨源隔离**：`_headers`、vite `server/preview.headers`、R2 路由都要带 COOP/COEP/CORP；
+   否则 `createContainer()` 在 `new SharedArrayBuffer` 阶段就失败（早于任何 wasm 请求）。
+
+### 实测性能（本地 wrangler，非公网）
+
+```
+fetch gzip 37.9MB  → 920ms
+gzip 解压 → 551ms
+WebAssembly.compile(98.1MiB) → 62ms
+合计 fetch+解压+编译 → 1533ms
+```
+
+这只是加载/编译，**不含** Bochs/QEMU 启动容器到 shell 可用的时间；浏览器端到端计时未完成
+（headless Firefox 不稳定 + 测量脚本 upstream 端口曾写错 8801，实际 8804）。
+需要重启时先修 `scripts/...` 中的 harness，再测 `createContainer()` 到首次 stdout 的时间。
+
+### 明确未验证
+
+- 浏览器内真实 `vi` 是否能用（wasi-sh 的 busybox 无 vi/nano，只有 c2w 真容器才有）。
+- container2wasm 模拟内核里 `nc -l 127.0.0.1` + `netstat` 的 spike（真实 Linux 容器已 5/5 通过，
+  模拟内核未验证）。
+
+## 8. 关键文档
 
 - `docs/实现说明.md`：实现状态与验收证据。
 - `docs/任务状态.md`：已完成 / 进行中 / 未开始。

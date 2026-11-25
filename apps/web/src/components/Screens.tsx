@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Terminal, Zap } from "lucide-react";
 import { api, type CourseInfo, type User } from "../api";
+import { CONTAINER_SHELL_ENABLED } from "../features";
 
 interface AuthProps { onDone: (user: User | null) => void }
 
@@ -179,10 +180,12 @@ export function CourseList({ user, onOpen, onFree, onContainer, onLogout }: Cour
           <strong className="icon-text"><Zap size={17} /> 自由模式</strong>
           <span>不进剧情，任选语言自由写代码、自定义测试点判题（草稿云端保存）</span>
         </button>
-        <button className="free-entry" onClick={onContainer}>
-          <strong className="icon-text"><Terminal size={17} /> Container Shell</strong>
-          <span>独立容器终端：cq-minimal:cn 根文件系统快照 + busybox，支持 vi 编辑文件</span>
-        </button>
+        {CONTAINER_SHELL_ENABLED && (
+          <button className="free-entry" onClick={onContainer}>
+            <strong className="icon-text"><Terminal size={17} /> Container Shell</strong>
+            <span>独立容器终端：cq-minimal:cn 根文件系统快照 + busybox，支持 vi 编辑文件</span>
+          </button>
+        )}
       </div>
       {error && <p className="bad">{error}</p>}
       <div className="cards">
