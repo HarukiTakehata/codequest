@@ -26,10 +26,14 @@ await build({
       };`,
     resolveDir: process.cwd(), loader: "js",
   },
-  bundle: true, format: "iife", platform: "browser", outfile: `${tmp}/runner.js`,
+  bundle: true, format: "esm", platform: "browser", outfile: `${tmp}/runner.mjs`,
 });
-const runner = await readFile(`${tmp}/runner.js`, "utf8");
-const html = `<!doctype html><html><body><script src="/runner.js"></script><script>
+const runner = await readFile(`${tmp}/runner.mjs`, "utf8");
+const c2wDist = resolve(process.cwd(), "node_modules/@webvirt/c2w/dist");
+const vmWorker = await readFile(resolve(c2wDist, "vm-worker.js"), "utf8");
+const ringWorker = await readFile(resolve(c2wDist, "ring-buffer-worker.js"), "utf8");
+const html = `<!doctype html><html><head><meta charset="utf-8"></head><body><script type="module">
+import "/runner.mjs";
 (async () => {
   const post = (body) => fetch('/done', { method: 'POST', body: JSON.stringify(body) });
   const progress = (stage) => fetch('/progress', { method: 'POST', body: stage });
@@ -61,7 +65,15 @@ const server = http.createServer(async (req, res) => {
     res.writeHead(204); res.end(); currentStage = body; console.log("PROGRESS " + body); return;
   }
   if (req.url === "/") { res.writeHead(200, { ...headers, "Content-Type": "text/html" }); res.end(html); return; }
-  if (req.url === "/runner.js") { res.writeHead(200, { ...headers, "Content-Type": "text/javascript" }); res.end(runner); return; }
+  if (req.url === "/runner.mjs" || req.url.startsWith("/runner.mjs?")) {
+    res.writeHead(200, { ...headers, "Content-Type": "text/javascript" }); res.end(runner); return;
+  }
+  if (req.url.startsWith("/vm-worker.js")) {
+    res.writeHead(200, { ...headers, "Content-Type": "text/javascript" }); res.end(vmWorker); return;
+  }
+  if (req.url.startsWith("/ring-buffer-worker.js")) {
+    res.writeHead(200, { ...headers, "Content-Type": "text/javascript" }); res.end(ringWorker); return;
+  }
   if (req.url === "/cq-teaching.wasm") {
     res.writeHead(200, { ...headers, "Content-Type": "application/wasm" });
     res.end(await readFile(wasm)); return;

@@ -69,7 +69,15 @@ description: 维护 CodeQuest 最小容器镜像、Container Shell、运行时 W
    - 内核/busybox 编译阶段必须补 `musl-dev linux-headers make gcc`，并移除 Ubuntu 风格
      `CROSS_COMPILE=x86_64-linux-gnu-`（Alpine/musl 原生工具链不需要）。
    - busybox `make defconfig` 后禁用 `CONFIG_TC`（新版内核头缺 CBQ 宏），否则 `networking/tc.c` 编译失败。
+   - `mkisofs` 在 Alpine 不存在，用 `xorriso`；`gettext-base` 用 `gettext`。
+   - tini：补 `#include <libgen.h>`、去掉 CMakeLists 里的 `-Werror`、`CC="gcc -static -Wno-error"`。
+   - Bochs/vmtouch 里的 `CC="x86_64-linux-gnu-gcc"` 改为 `gcc`；vmtouch 只 `make vmtouch`（避免 pod2man）。
+   - GNU 源码镜像用阿里云 `https://mirrors.aliyun.com/gnu/`（ftp.gnu.org 约 10KB/s，USTC 容器内 403）；
+     Alpine apk 在 c2w 构建内也用阿里云（清华在容器内 403）。
+   - 实测 Alpine 化 127 步可完成：`cq-minimal-alpine.wasm` 98MB，`EXIT=0`。
 5. 每失败一层只改该层，podman 会复用之前缓存；不要从头重跑所有层。
+6. 浏览器 spike：`@webvirt/c2w` 用 `import.meta.url` 定位 worker，esbuild 必须打成 **ESM** 而非 IIFE，
+   并同时提供 `vm-worker.js` / `ring-buffer-worker.js`；页面需 COOP/COEP 以使用 SharedArrayBuffer。
 5. 产物后在真实容器跑 `scripts/test-minimal-rootfs.mjs` 的 loopback 项；浏览器侧 spike 用
    `scripts/spike-loopback.mjs`（需 COOP/COEP 与 headless Firefox）。
 6. 若冷启动仍超交互教学可接受范围，记录结论，不把容器会话放进 v1 主链路（设计书 §5.5 降级条款）。
