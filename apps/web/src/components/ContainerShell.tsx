@@ -24,7 +24,7 @@ export function ContainerShell({ onBack }: Props) {
 
     const { createContainer } = await import("@webvirt/c2w");
     const container = await createContainer({
-      wasmUrl: "/container-shell/cq-minimal.wasm",
+      wasmUrl: "/runtime/cq-minimal.wasm",
       command: ["/bin/sh"],
       env: { TERM: "xterm", PS1: "$ ", HOME: "/home/student" },
       onExit: (code) => term.writeln(`\r\n\x1b[33m[容器退出: ${code}]\x1b[0m`),

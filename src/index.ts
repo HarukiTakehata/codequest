@@ -7,6 +7,7 @@ import { courseRoutes } from "./routes/courses";
 import { freeformRoutes } from "./routes/freeform";
 import { meRoutes } from "./routes/me";
 import { progressRoutes } from "./routes/progress";
+import { runtimeRoutes } from "./routes/runtime-assets";
 import { setupRoutes } from "./routes/setup";
 import type { Env } from "./types";
 
@@ -36,6 +37,7 @@ export function createApp() {
   app.route("/api/v1", courseRoutes);
   app.route("/api/v1", progressRoutes);
   app.route("/api/v1", freeformRoutes);
+  app.route("/", runtimeRoutes);
 
   // 设计书 §7.1 / boardroom 惯例：空实例访问根路径跳转到实例初始化页面。
   app.get("/", async (c) => {

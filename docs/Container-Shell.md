@@ -16,14 +16,17 @@
 
 - `scripts/build-minimal-shell-cn.mjs`：清华 apk 源 + `gh-proxy.org` 源码，Alpine/musl 静态编译
   busybox 1.38.0，rootfs 1.2MB / 407 applet，`FROM scratch` 打成 `cq-minimal:cn`。
-- c2w 转换产物：`apps/web/public/container-shell/cq-minimal.wasm`（由镜像转换生成）。
-- 跨源隔离头（`apps/web/public/_headers` + vite）提供 SharedArrayBuffer，满足 c2w 运行时要求。
+- c2w 转换产物：`runtime/cq-minimal.wasm.gz`（约 37MB）。原 wasm 约 98MiB，超过 Workers Assets
+  单文件 25MiB 上限，因此**不放进静态资源目录**，改为存 R2，由 Worker 路由
+  `GET /runtime/cq-minimal.wasm` 以 `Content-Type: application/wasm` + `Content-Encoding: gzip` 返回。
+- 上传：`npm run runtime:upload`（本地 R2）/ `npm run runtime:upload:remote`（线上 R2）。
+- 跨源隔离头（`apps/web/public/_headers` + vite + R2 路由）提供 SharedArrayBuffer，满足 c2w 运行时要求。
 
 ## 执行路径
 
 ```ts
 const container = await createContainer({
-  wasmUrl: "/container-shell/cq-minimal.wasm",
+  wasmUrl: "/runtime/cq-minimal.wasm",
   command: ["/bin/sh"],
   env: { TERM: "xterm", PS1: "$ ", HOME: "/home/student" },
 });
@@ -41,6 +44,7 @@ container.stdio.stdout/stderr     → xterm.write
 ## 验证
 
 - `tests/frontend/container-shell-assets.test.ts`：确认组件直接对接 `createContainer`、
-  `stdio.stdin`，无前端拦截逻辑。
+  `stdio.stdin`，无前端拦截逻辑；`tests/backend/runtime-assets.test.ts` 验证 R2 路由头部。
+- 真实 `wrangler dev`：`GET /runtime/cq-minimal.wasm` 返回 200 + wasm/gzip/跨源隔离头。
 - `node scripts/test-minimal-rootfs.mjs`：镜像内 shell/文件/文本/进程/loopback 5/5 通过。
 - `npm run typecheck` / `npm run build` 通过。
