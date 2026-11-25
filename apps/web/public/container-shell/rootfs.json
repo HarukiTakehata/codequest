@@ -1,0 +1,6 @@
+{
+  "/etc/passwd": "root:x:0:0:root:/root:/bin/sh\n",
+  "/etc/resolv.conf": "nameserver 169.254.1.1\nnameserver 10.217.167.57\nnameserver 2408:8417:630:823::39\n",
+  "/home/student/.profile": "echo \"CodeQuest Container Shell（busybox ash 快照）\"\n",
+  "/home/student/README.md": "# Container Shell\n基于 cq-minimal:cn 根文件系统快照；命令由 wasi-sh 的 busybox wasm 执行。\n支持 vi 编辑文件。\n"
+}

@@ -2,10 +2,11 @@ import { useEffect, useState } from "react";
 import { api, type CourseInfo, type CoursePack, type Progress, type User } from "./api";
 import { Stage } from "./components/Stage";
 import { FreeMode } from "./components/FreeMode";
+import { ContainerShell } from "./components/ContainerShell";
 import { ChangePasswordPage, CourseList, LoginPage, SetupWizard } from "./components/Screens";
 import "./styles.css";
 
-type View = "loading" | "setup" | "login" | "password" | "courses" | "game" | "free";
+type View = "loading" | "setup" | "login" | "password" | "courses" | "game" | "free" | "container";
 
 export default function App() {
   const [view, setView] = useState<View>("loading");
@@ -55,10 +56,12 @@ export default function App() {
       user={user}
       onOpen={(c) => void openCourse(c)}
       onFree={() => setView("free")}
+      onContainer={() => setView("container")}
       onLogout={() => { setUser(null); setView("login"); }}
     />;
   }
   if (view === "free") return <FreeMode onBack={() => setView("courses")} />;
+  if (view === "container") return <ContainerShell onBack={() => setView("courses")} />;
   if (view === "game" && course && pack) {
     return <Stage courseId={course.id} pack={pack} progress={progress} onBack={() => setView("courses")} />;
   }

@@ -47,6 +47,8 @@ button.link { background: none; border: none; color: var(--accent); padding: 4px
 .course-list { max-width: 1000px; margin: 0 auto; padding: 28px 20px; }
 .course-list header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--line); padding-bottom: 16px; }
 .course-list h1 { margin: 0; letter-spacing: .1em; }
+.mode-entries { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 20px; }
+@media (max-width: 700px) { .mode-entries { grid-template-columns: 1fr; } }
 .free-entry { width: 100%; display: flex; flex-direction: column; gap: 4px; text-align: left;
   background: linear-gradient(110deg, #1b2752, #2a1b4e); border: 1px solid var(--accent);
   border-radius: 12px; padding: 16px 20px; color: inherit; margin-bottom: 20px; }
@@ -131,6 +133,10 @@ button .icon-text { gap: 6px; }
 .diff table { grid-column: 1 / -1; border-collapse: collapse; width: 100%; }
 .diff td, .diff th { border: 1px solid var(--line); padding: 4px 8px; text-align: left; }
 
+.container-shell header { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.container-shell header > div { display: flex; align-items: center; gap: 10px; }
+.terminal-shell-window { display: flex; flex-direction: column; height: 60vh; min-height: 360px;
+  background: #070b1c; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
 .terminal-output { flex: 1; margin: 0; padding: 16px; overflow: auto; background: #070b1c; color: #b8f0c8; font-family: ui-monospace, monospace; font-size: .85rem; white-space: pre-wrap; }
 .terminal-input { display: flex; gap: 8px; align-items: center; padding: 10px 16px; border-top: 1px solid var(--line); }
 .terminal-input button { padding: 8px 16px; border-radius: 8px; border: 0; background: var(--accent); color: #0b1026; font-weight: 700; }

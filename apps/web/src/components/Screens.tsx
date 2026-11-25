@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Zap } from "lucide-react";
+import { Terminal, Zap } from "lucide-react";
 import { api, type CourseInfo, type User } from "../api";
 
 interface AuthProps { onDone: (user: User | null) => void }
@@ -156,10 +156,11 @@ interface CourseProps {
   user: User;
   onOpen: (course: CourseInfo) => void;
   onFree: () => void;
+  onContainer: () => void;
   onLogout: () => void;
 }
 
-export function CourseList({ user, onOpen, onFree, onLogout }: CourseProps) {
+export function CourseList({ user, onOpen, onFree, onContainer, onLogout }: CourseProps) {
   const [courses, setCourses] = useState<CourseInfo[]>([]);
   const [error, setError] = useState("");
   useEffect(() => {
@@ -173,10 +174,16 @@ export function CourseList({ user, onOpen, onFree, onLogout }: CourseProps) {
           <button className="ghost" onClick={() => { void api.logout(); onLogout(); }}>退出</button></div>
       </header>
       <h2>我的课程</h2>
-      <button className="free-entry" onClick={onFree}>
-        <strong className="icon-text"><Zap size={17} /> 自由模式</strong>
-        <span>不进剧情，任选语言自由写代码、自定义测试点判题（草稿云端保存）</span>
-      </button>
+      <div className="mode-entries">
+        <button className="free-entry" onClick={onFree}>
+          <strong className="icon-text"><Zap size={17} /> 自由模式</strong>
+          <span>不进剧情，任选语言自由写代码、自定义测试点判题（草稿云端保存）</span>
+        </button>
+        <button className="free-entry" onClick={onContainer}>
+          <strong className="icon-text"><Terminal size={17} /> Container Shell</strong>
+          <span>独立容器终端：cq-minimal:cn 根文件系统快照 + busybox，支持 vi 编辑文件</span>
+        </button>
+      </div>
       {error && <p className="bad">{error}</p>}
       <div className="cards">
         {courses.map((course) => (
