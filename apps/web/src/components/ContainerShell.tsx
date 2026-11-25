@@ -1,11 +1,14 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Terminal } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import { RotateCcw, Terminal as TerminalIcon } from "lucide-react";
 import { openShellSession, type ShellSessionLike } from "@codequest/runtime-shell/src/session-client";
+import { CodeEditor } from "./CodeEditor";
 import "@xterm/xterm/css/xterm.css";
 
 interface Props { onBack: () => void }
+
+interface EditorState { path: string; content: string }
 
 const RS = "\x1e";
 const PROMPT = "\x1b[36m$\x1b[0m ";
