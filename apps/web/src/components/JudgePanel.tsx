@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Check, X } from "lucide-react";
 import type { JudgeResult } from "@codequest/judge";
 
 interface Props {
@@ -29,7 +30,9 @@ export function JudgePanel({ result, lastRun }: Props) {
           <ul className="cases">
             {result.results.map((test) => (
               <li key={test.id} className={test.passed ? "pass" : "fail"}>
-                <span>{test.passed ? "✓" : "✗"}</span> {test.name}
+                <span className={test.passed ? "icon-text pass" : "icon-text fail"}>
+                  {test.passed ? <Check size={14} /> : <X size={14} />}
+                </span> {test.name}
                 <small>{test.reason === "ok" ? "" : ` · ${test.reason}`}</small>
               </li>
             ))}

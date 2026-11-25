@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { ArrowLeft, ChevronDown } from "lucide-react";
 import { parseScript } from "../engine/parser";
 import { StoryEngine, type StoryEvent } from "../engine/executor";
 import { api, type CoursePack, type Progress } from "../api";
@@ -110,7 +111,7 @@ export function Stage({ courseId, pack, progress, onBack }: Props) {
   return (
     <div className="stage" style={{ backgroundImage: bg }}>
       <div className="stage-top">
-        <button className="ghost" onClick={onBack}>← 课程列表</button>
+        <button className="ghost" onClick={onBack}><ArrowLeft size={15} /> 课程列表</button>
         <span className="stage-progress">剧情节点 {engine.current.state.pointer}</span>
       </div>
       <div className="stage-figure">
@@ -121,7 +122,7 @@ export function Stage({ courseId, pack, progress, onBack }: Props) {
           <>
             <div className="speaker">{event.speaker || "旁白"}</div>
             <div className="text">{event.text}</div>
-            <div className="continue">点击继续 ▾</div>
+            <div className="continue">点击继续 <ChevronDown size={13} /></div>
           </>
         )}
         {event.type === "title" && <div className="title-card">{event.text}</div>}

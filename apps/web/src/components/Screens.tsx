@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Zap } from "lucide-react";
 import { api, type CourseInfo, type User } from "../api";
 
 interface AuthProps { onDone: (user: User | null) => void }
@@ -173,7 +174,7 @@ export function CourseList({ user, onOpen, onFree, onLogout }: CourseProps) {
       </header>
       <h2>我的课程</h2>
       <button className="free-entry" onClick={onFree}>
-        <strong>⚡ 自由模式</strong>
+        <strong className="icon-text"><Zap size={17} /> 自由模式</strong>
         <span>不进剧情，任选语言自由写代码、自定义测试点判题（草稿云端保存）</span>
       </button>
       {error && <p className="bad">{error}</p>}

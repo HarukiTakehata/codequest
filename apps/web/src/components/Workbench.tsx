@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Play } from "lucide-react";
 import { evaluateGoals, judge, type GoalStatus, type JudgeResult, type RunResponse } from "@codequest/judge";
 import { runCode, type ExtendedRun } from "../runners";
 import type { Challenge, JudgeConfig } from "../types";
@@ -87,7 +88,9 @@ export function Workbench({ challenge, judgeConfig, onPass, onClose }: Props) {
             <textarea value={stdin} onChange={(e) => setStdin(e.target.value)} rows={2} spellCheck={false} />
           </div>
           <div className="controls">
-            <button onClick={doRun} disabled={busy}>{busy ? "运行中…" : "▶ 运行"}</button>
+            <button onClick={doRun} disabled={busy}>
+              {busy ? "运行中…" : <span className="icon-text"><Play size={15} /> 运行</span>}
+            </button>
             <button className="primary" onClick={doSubmit} disabled={busy || !judgeConfig || !allDone}>
               {busy ? "判题中…" : "提交判定"}
             </button>

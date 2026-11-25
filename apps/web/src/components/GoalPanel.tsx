@@ -1,3 +1,4 @@
+import { Check } from "lucide-react";
 import type { GoalStatus } from "@codequest/judge";
 
 interface Props {
@@ -15,13 +16,13 @@ export function GoalPanel({ goals, allDone, required }: Props) {
       <ul>
         {visible.map((goal) => (
           <li key={goal.id} className={goal.done ? "done" : ""} title={goal.hint}>
-            <span className="checkbox">{goal.done ? "✓" : ""}</span>
+            <span className="checkbox">{goal.done && <Check size={13} strokeWidth={3} />}</span>
             <span>{goal.text}</span>
           </li>
         ))}
       </ul>
       {required && <p className={allDone ? "ready" : "muted"}>
-        {allDone ? "✅ 可以提交" : "需全部达成后才能提交"}
+        {allDone ? <span className="icon-text"><Check size={14} /> 可以提交</span> : "需全部达成后才能提交"}
       </p>}
     </aside>
   );

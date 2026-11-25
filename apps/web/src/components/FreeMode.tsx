@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { ArrowLeft, Play, Plus } from "lucide-react";
 import { judge, type DiffMode, type JudgeResult } from "@codequest/judge";
 import { freeform } from "../api";
 import { buildFreeJudgeConfig, DEFAULT_FREE_TESTCASES, type FreeTestCase } from "../free";
@@ -91,7 +92,7 @@ export function FreeMode({ onBack }: Props) {
     <div className="course-list free-mode">
       <header>
         <h1>自由模式</h1>
-        <button className="ghost" onClick={onBack}>← 课程列表</button>
+        <button className="ghost" onClick={onBack}><ArrowLeft size={15} /> 课程列表</button>
       </header>
       <p className="muted">任意语言自由写代码、自定义输入输出测试点。草稿登录后按语言自动云端保存，不依赖剧情进度。</p>
       <div className="lang-tabs">
@@ -107,7 +108,9 @@ export function FreeMode({ onBack }: Props) {
             <CodeEditor value={code} language={lang} onChange={setCode} diagnostics={diagnostics} />
           </div>
           <div className="controls">
-            <button onClick={() => void doRun()} disabled={busy || !loaded.current}>▶ 运行</button>
+            <button onClick={() => void doRun()} disabled={busy || !loaded.current}>
+              <span className="icon-text"><Play size={15} /> 运行</span>
+            </button>
             <button className="primary" onClick={() => void doSubmit()} disabled={busy || !loaded.current}>提交判定</button>
             <button className="ghost" onClick={() => void save()} disabled={busy}>保存草稿</button>
           </div>
@@ -138,7 +141,7 @@ export function FreeMode({ onBack }: Props) {
           ))}
           <button onClick={() => setCases((prev) => [...prev, {
             id: `t${prev.length + 1}`, name: `测试点 ${prev.length + 1}`, stdin: "", expected: "", mode: "eol",
-          }])}>+ 添加测试点</button>
+          }])}><span className="icon-text"><Plus size={15} /> 添加测试点</span></button>
         </aside>
       </div>
     </div>

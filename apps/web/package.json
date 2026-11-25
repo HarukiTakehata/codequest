@@ -15,6 +15,7 @@
     "@codequest/runtime-js": "*",
     "@codequest/runtime-pyodide": "*",
     "@codequest/runtime-shell": "*",
+    "lucide-react": "^1.80.0",
     "monaco-editor": "^0.52.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"

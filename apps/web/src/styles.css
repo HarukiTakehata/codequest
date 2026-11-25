@@ -115,7 +115,10 @@ button.link { background: none; border: none; color: var(--accent); padding: 4px
 .goals ul { list-style: none; padding: 0; }
 .goals li { display: flex; gap: 8px; font-size: .85rem; padding: 8px 0; color: #aab6e0; }
 .goals li.done { color: var(--ok); }
-.checkbox { width: 18px; height: 18px; flex: none; border: 1px solid var(--line); border-radius: 4px; text-align: center; line-height: 16px; }
+.checkbox { width: 18px; height: 18px; flex: none; border: 1px solid var(--line); border-radius: 4px;
+  display: inline-flex; align-items: center; justify-content: center; }
+.icon-text { display: inline-flex; align-items: center; gap: 6px; vertical-align: middle; }
+button .icon-text { gap: 6px; }
 
 .judge-panel { font-size: .85rem; }
 .judge-panel h4 { margin: 12px 0 6px; }
