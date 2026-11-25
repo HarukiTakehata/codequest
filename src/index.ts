@@ -4,6 +4,7 @@ import { HttpError } from "./lib/http-error";
 import { adminRoutes } from "./routes/admin";
 import { authRoutes } from "./routes/auth";
 import { courseRoutes } from "./routes/courses";
+import { freeformRoutes } from "./routes/freeform";
 import { meRoutes } from "./routes/me";
 import { progressRoutes } from "./routes/progress";
 import { setupRoutes } from "./routes/setup";
@@ -34,6 +35,7 @@ export function createApp() {
   app.route("/api/v1/admin", adminRoutes);
   app.route("/api/v1", courseRoutes);
   app.route("/api/v1", progressRoutes);
+  app.route("/api/v1", freeformRoutes);
 
   app.notFound((c) => {
     if (c.req.path.startsWith("/api/")) {

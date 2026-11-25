@@ -2,7 +2,8 @@ import type { DiffLine, DiffMode } from "./types";
 
 /** 归一化后逐行比较；regex-line 的 expected 每一行都是正则。 */
 function normalize(mode: DiffMode, text: string): string[] {
-  let value = text.replace(/\r\n?/g, "\n");
+  // 非 exact 模式统一先去掉文件末尾换行（JS print / echo 都会补一个）。
+  let value = text.replace(/\r\n?/g, "\n").replace(/\n+$/g, "");
   if (mode === "eol" || mode === "ws") {
     value = value
       .split("\n")

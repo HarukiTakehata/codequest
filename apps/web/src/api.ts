@@ -54,3 +54,27 @@ export const api = {
       method: "PUT", body: JSON.stringify(progress),
     }),
 };
+
+export interface FreeTestCase {
+  id: string;
+  name: string;
+  stdin: string;
+  expected: string;
+  mode: "exact" | "eol" | "ws" | "regex-line" | "numeric-tol";
+}
+export interface FreeformDraft {
+  lang: string;
+  code: string;
+  stdin: string;
+  testcases: FreeTestCase[];
+  updated_at?: string;
+}
+
+export const freeform = {
+  list: () => request<{ drafts: Record<string, FreeformDraft>; templates: Record<string, string> }>("/api/v1/freeform"),
+  get: (lang: string) => request<{ draft: FreeformDraft }>(`/api/v1/freeform/${lang}`),
+  save: (lang: string, draft: Omit<FreeformDraft, "lang" | "updated_at">) =>
+    request<{ draft: FreeformDraft }>(`/api/v1/freeform/${lang}`, {
+      method: "PUT", body: JSON.stringify(draft),
+    }),
+};

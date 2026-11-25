@@ -68,6 +68,17 @@ CREATE TABLE IF NOT EXISTS progress (
   PRIMARY KEY (user_id, course_id)
 );
 
+-- Source of truth: migrations/0002_freeform.sql
+CREATE TABLE IF NOT EXISTS freeform_drafts (
+  user_id TEXT NOT NULL REFERENCES users(id),
+  lang TEXT NOT NULL,
+  code TEXT NOT NULL DEFAULT '',
+  stdin TEXT NOT NULL DEFAULT '',
+  testcases_json TEXT NOT NULL DEFAULT '[]',
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (user_id, lang)
+);
+
 CREATE TABLE IF NOT EXISTS issued_batches (
   id TEXT PRIMARY KEY,
   admin_id TEXT NOT NULL REFERENCES users(id),

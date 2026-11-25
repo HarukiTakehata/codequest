@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import { api, type CourseInfo, type CoursePack, type Progress, type User } from "./api";
 import { Stage } from "./components/Stage";
+import { FreeMode } from "./components/FreeMode";
 import { ChangePasswordPage, CourseList, LoginPage, SetupWizard } from "./components/Screens";
 import "./styles.css";
 
-type View = "loading" | "setup" | "login" | "password" | "courses" | "game";
+type View = "loading" | "setup" | "login" | "password" | "courses" | "game" | "free";
 
 export default function App() {
   const [view, setView] = useState<View>("loading");
@@ -46,8 +47,14 @@ export default function App() {
   if (view === "login") return <LoginPage onDone={onAuthDone} />;
   if (view === "password") return <ChangePasswordPage onDone={onAuthDone} />;
   if (view === "courses" && user) {
-    return <CourseList user={user} onOpen={(c) => void openCourse(c)} onLogout={() => { setUser(null); setView("login"); }} />;
+    return <CourseList
+      user={user}
+      onOpen={(c) => void openCourse(c)}
+      onFree={() => setView("free")}
+      onLogout={() => { setUser(null); setView("login"); }}
+    />;
   }
+  if (view === "free") return <FreeMode onBack={() => setView("courses")} />;
   if (view === "game" && course && pack) {
     return <Stage courseId={course.id} pack={pack} progress={progress} onBack={() => setView("courses")} />;
   }

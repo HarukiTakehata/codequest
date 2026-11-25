@@ -80,10 +80,11 @@ export function ChangePasswordPage({ onDone }: AuthProps) {
 interface CourseProps {
   user: User;
   onOpen: (course: CourseInfo) => void;
+  onFree: () => void;
   onLogout: () => void;
 }
 
-export function CourseList({ user, onOpen, onLogout }: CourseProps) {
+export function CourseList({ user, onOpen, onFree, onLogout }: CourseProps) {
   const [courses, setCourses] = useState<CourseInfo[]>([]);
   const [error, setError] = useState("");
   useEffect(() => {
@@ -97,6 +98,10 @@ export function CourseList({ user, onOpen, onLogout }: CourseProps) {
           <button className="ghost" onClick={() => { void api.logout(); onLogout(); }}>退出</button></div>
       </header>
       <h2>我的课程</h2>
+      <button className="free-entry" onClick={onFree}>
+        <strong>⚡ 自由模式</strong>
+        <span>不进剧情，任选语言自由写代码、自定义测试点判题（草稿云端保存）</span>
+      </button>
       {error && <p className="bad">{error}</p>}
       <div className="cards">
         {courses.map((course) => (
