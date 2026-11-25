@@ -13,6 +13,7 @@ const work = workIndex >= 0 ? resolve(args[workIndex + 1]) : "/tmp/cq-minimal-cn
 const BUSYBOX_URL = "https://gh-proxy.org/https://github.com/vda-linux/busybox_mirror/archive/refs/tags/1_38_0.tar.gz";
 const ALPINE = "docker.io/library/alpine:3.22";
 const BUILD_IMAGE = "cq-minimal-builder:local";
+const MINIMAL_IMAGE = "cq-minimal:cn";
 
 const run = (cmd, args, options = {}) => {
   console.log(`$ ${cmd} ${args.join(" ")}`);
@@ -44,13 +45,24 @@ tar xzf busybox.tar.gz
 SRC_DIR=$(find . -maxdepth 1 -type d -name 'busybox*' | head -1)
 cd "$SRC_DIR"
 make defconfig
+# 1.38 源码没有 scripts/config，直接改 .config。
+enable() {
+  if grep -q "^# \$1 is not set" .config; then
+    sed -i "s|^# \$1 is not set|\$1=y|" .config
+  elif ! grep -q "^\$1=" .config; then
+    echo "\$1=y" >> .config
+  fi
+}
 # 教学所需 applet（含 loopback spike 用的 nc/netstat/ps/pgrep）
 for opt in ASH AWK CAT CHMOD CP CUT ECHO FIND GREP HEAD LS MD5SUM MKDIR MV NC NETSTAT \
-           PGREP PS PWD RM SED SORT STAT TAIL TEST TOUCH TR UNIQ WC VI SH; do
-  scripts/config --enable "CONFIG_\${opt}" 2>/dev/null || true
+           PGREP PS PWD RM SED SORT STAT TAIL TEST TOUCH TR UNIQ WC VI SH STATIC; do
+  enable "CONFIG_\${opt}"
 done
-scripts/config --disable CONFIG_DESKTOP 2>/dev/null || true
-make -j\$(nproc) CONFIG_STATIC=y 2>&1 | tail -8
+# tc 依赖旧内核头的 CBQ 定义，在 linux-headers 6.x 下编译失败；教学也不需要。
+if grep -q '^CONFIG_TC=y' .config; then sed -i 's/^CONFIG_TC=y/# CONFIG_TC is not set/' .config; fi
+yes '' | make oldconfig > /tmp/busybox-oldconfig.log 2>&1
+make -j\$(nproc) > /tmp/busybox-make.log 2>&1 || { tail -40 /tmp/busybox-make.log; exit 1; }
+tail -5 /tmp/busybox-make.log
 mkdir -p /out/rootfs/bin /out/rootfs/sbin /out/rootfs/usr/bin /out/rootfs/proc \\
          /out/rootfs/sys /out/rootfs/dev /out/rootfs/tmp /out/rootfs/home/student
 cp busybox /out/rootfs/bin/busybox
@@ -80,3 +92,8 @@ run("podman", ["cp", "cq-minimal-extract:/out/rootfs", `${work}/rootfs`]);
 run("podman", ["rm", "-f", "cq-minimal-extract"]);
 
 console.log(`最小根文件系统已生成: ${work}/rootfs`);
+
+// 3. 用 scratch 把 rootfs 打成最小容器镜像（不含任何 Ubuntu/Debian 层）。
+writeFileSync(`${work}/Containerfile.image`, `FROM scratch\nCOPY rootfs/ /\nENTRYPOINT ["/bin/sh"]\n`);
+run("podman", ["build", "-t", MINIMAL_IMAGE, "-f", `${work}/Containerfile.image`, work]);
+console.log(`最小容器镜像已生成: ${MINIMAL_IMAGE}`);
