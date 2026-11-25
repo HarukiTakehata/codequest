@@ -56,7 +56,7 @@ export function ContainerShell({ onBack }: Props) {
       term.write("\r\n\x1b[90mTab 补全 · 方向键历史未启用 · vi 用 :wq 保存/:q! 退出 · Ctrl+C 中断\x1b[0m\r\n");
       prompt(term); return;
     }
-    if (cmd === "reset") { void start(); return; }
+    if (cmd === "reset") { void begin(); return; }
     if (cmd === "exit") { sessionRef.current?.write("exit\n"); return; }
     runningRef.current = true;
     // 完成标记与命令放在同一行，vi 等全屏程序不会把标记当成输入；
@@ -91,6 +91,17 @@ export function ContainerShell({ onBack }: Props) {
     });
     engine.onError((error) => term.writeln(`\r\n\x1b[31m[shell: ${error.message}]\x1b[0m`));
     void engine.exited.then((code) => term.writeln(`\r\n\x1b[33m[会话结束: ${code}]\x1b[0m`));
+  };
+
+  /** 启动（或重启）会话后只绘制一次提示符。 */
+  const begin = async (intro = false) => {
+    const term = termRef.current;
+    if (!term) return;
+    if (intro) {
+      term.writeln(`\x1b[90mrootfs: ${Object.keys(filesRef.current).length} 个文件 / ${appletsRef.current.length} 个 applet\x1b[0m`);
+      term.writeln("\x1b[90mTab 补全 · vi 全屏编辑 · Ctrl+C 中断\x1b[0m");
+    }
+    await start();
     prompt(term);
     term.focus();
   };
@@ -150,13 +161,7 @@ export function ContainerShell({ onBack }: Props) {
       if (!alive) return;
       filesRef.current = files;
       appletsRef.current = list;
-      void start().then(() => {
-        if (!alive) return;
-        terminal.writeln(`\x1b[90mrootfs: ${Object.keys(files).length} 个文件 / ${list.length} 个 applet\x1b[0m`);
-        terminal.writeln("\x1b[90mTab 补全 · vi 全屏编辑 · Ctrl+C 中断\x1b[0m");
-        prompt(terminal);
-        terminal.focus();
-      });
+      void begin(true);
     }).catch((error) => terminal.writeln(`\x1b[31m快照载入失败: ${String(error)}\x1b[0m`));
 
     return () => {
@@ -173,7 +178,7 @@ export function ContainerShell({ onBack }: Props) {
         <h1 className="icon-text"><TerminalIcon size={22} /> Container Shell</h1>
         <div className="icon-text">
           <span className="muted">cq-minimal:cn · busybox 1.38</span>
-          <button className="ghost" onClick={() => void start()}><RotateCcw size={14} /> 重启会话</button>
+          <button className="ghost" onClick={() => void begin()}><RotateCcw size={14} /> 重启会话</button>
           <button className="ghost" onClick={onBack}>返回课程列表</button>
         </div>
       </header>
