@@ -20,15 +20,27 @@ export function ContainerShell({ onBack }: Props) {
     if (!term) return;
     stopRef.current?.();
     term.clear();
-    term.writeln("\x1b[36m正在启动 cq-minimal:cn 容器（首次启动较慢，请耐心等待）…\x1b[0m");
+    const wasmUrl = "/runtime/cq-minimal.wasm";
+    term.writeln(`\x1b[36m正在加载 ${wasmUrl}（首次启动较慢，请耐心等待）…\x1b[0m`);
 
-    const { createContainer } = await import("@webvirt/c2w");
-    const container = await createContainer({
-      wasmUrl: "/runtime/cq-minimal.wasm",
-      command: ["/bin/sh"],
-      env: { TERM: "xterm", PS1: "$ ", HOME: "/home/student" },
-      onExit: (code) => term.writeln(`\r\n\x1b[33m[容器退出: ${code}]\x1b[0m`),
-    });
+    let container;
+    try {
+      const probe = await fetch(wasmUrl, { method: "HEAD" });
+      if (!probe.ok) throw new Error(`HTTP ${probe.status} — 请先执行 npm run runtime:upload`);
+      const contentType = probe.headers.get("content-type") ?? "";
+      if (!contentType.includes("application/wasm")) throw new Error(`返回类型不是 wasm: ${contentType}`);
+      const { createContainer } = await import("@webvirt/c2w");
+      container = await createContainer({
+        wasmUrl,
+        command: ["/bin/sh"],
+        env: { TERM: "xterm", PS1: "$ ", HOME: "/home/student" },
+        onExit: (code) => term.writeln(`\r\n\x1b[33m[容器退出: ${code}]\x1b[0m`),
+      });
+    } catch (error) {
+      term.writeln(`\r\n\x1b[31m容器启动失败: ${error instanceof Error ? error.message : String(error)}\x1b[0m`);
+      term.writeln("\x1b[90m本地开发请先运行 npm run runtime:upload；线上运行 npm run runtime:upload:remote\x1b[0m");
+      return;
+    }
 
     let stopped = false;
     const stdin = container.stdio.stdin.getWriter();

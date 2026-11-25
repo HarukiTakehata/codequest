@@ -18,6 +18,11 @@ describe("Container Shell 跨源隔离（SharedArrayBuffer 前提）", () => {
     expect(config).toContain("preview:");
   });
 
+  it("Vite dev 代理包含 /runtime（c2w wasm 由 Worker/R2 提供）", () => {
+    const config = read("apps/web/vite.config.ts");
+    expect(config).toContain('"/runtime": { target: "http://localhost:8787"');
+  });
+
   it("Pyodide 工件全部本地化，不被 COEP/CORS 阻断", () => {
     const execute = read("packages/runtime-pyodide/src/execute.ts");
     expect(execute).toContain("PYODIDE_BASE");

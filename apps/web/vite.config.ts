@@ -12,7 +12,11 @@ export default defineConfig({
       "Cross-Origin-Embedder-Policy": "require-corp",
       "Cross-Origin-Resource-Policy": "same-origin",
     },
-    proxy: { "/api": { target: "http://localhost:8787", changeOrigin: true } },
+    proxy: {
+      "/api": { target: "http://localhost:8787", changeOrigin: true },
+      // c2w wasm 由 Worker 从 R2 提供，不走静态资源。
+      "/runtime": { target: "http://localhost:8787", changeOrigin: true },
+    },
   },
   preview: {
     headers: {
