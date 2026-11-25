@@ -8,8 +8,8 @@ export async function runWasiSh(request: RunRequest): Promise<RunResponse> {
   const { run } = await import("wasi-sh");
   const result = await Promise.race([
     run({
-      // 与内存教学 shell 保持同一初始 cwd，课程包里的相对路径才可直接用。
-      script: `cd /home/student\n${request.code}`,
+      // 与内存教学 shell 保持同一初始 cwd；无注入文件时也要先建目录，避免 cd 报错。
+      script: `mkdir -p /home/student\ncd /home/student\n${request.code}`,
       stdin: request.stdin,
       files: request.files ?? {},
       env: { LC_ALL: "C" },

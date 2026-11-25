@@ -12,9 +12,9 @@ freeformRoutes.use("*", requireUser);
 const LANGS = ["javascript", "python", "cpp", "shell", "java"] as const;
 export const FREE_TEMPLATES: Record<(typeof LANGS)[number], string> = {
   javascript: '// 自由模式 · JavaScript\n// console.log 输出；readline() 逐行读 stdin\nconsole.log("hello");\n',
-  python: '# 自由模式 · Python\n# input() 读 stdin；print() 输出\ns = input()\nprint(s)\n',
+  python: '# 自由模式 · Python\n# input() 读 stdin；print() 输出\nprint("hello")\n',
   cpp: '// 自由模式 · C/C++（浏览器内真实编译）\n#include <stdio.h>\nint main(void) {\n  puts("hello");\n  return 0;\n}\n',
-  shell: '# 自由模式 · Shell（wasi-sh 真实 busybox）\ncat words.txt | sort | uniq -c\n',
+  shell: '# 自由模式 · Shell（wasi-sh 真实 busybox）\n# 可用：echo/cat/grep/sort/uniq/wc/head/tail/find 等\necho hello\n',
   java: '// 自由模式 · Java（teavm-javac）\npublic class Main {\n  public static void main(String[] args) {\n    System.out.println("hello");\n  }\n}\n',
 };
 
