@@ -33,6 +33,19 @@ function readInputs(state: ShellState, args: string[], stdin: string): string | 
   if (!files.length) return stdin;
   let combined = "";
   for (const file of files) {
+    // 支持 `grep 'CQ{' levels/l3/*.txt` 这类教学常用通配符。
+    if (/[*?]/.test(file)) {
+      const slash = file.lastIndexOf("/");
+      const parent = resolve(state, file.slice(0, slash < 0 ? 0 : slash) || ".");
+      const pattern = file.slice(slash + 1);
+      const matcher = glob(pattern);
+      const matches = listDir(state.vfs, parent).filter((e) => matcher.test(e.name));
+      for (const match of matches) {
+        const content = readFile(state.vfs, `${parent === "/" ? "" : parent}/${match.name}`);
+        if (content !== null) combined += content.endsWith("\n") || !content ? content : `${content}\n`;
+      }
+      continue;
+    }
     const content = readFile(state.vfs, resolve(state, file));
     if (content === null) return null;
     combined += content.endsWith("\n") || !content ? content : `${content}\n`;
@@ -300,6 +313,17 @@ export function executeShell(request: RunRequest): ShellRunResponse {
   for (const rawLine of request.code.replace(/\r\n?/g, "\n").split("\n")) {
     const line = rawLine.trim();
     if (!line || line.startsWith("#")) continue;
+    // 支持 `cmd1 && cmd2`（教学 shell 常用的串联写法）。
+    if (line.includes("&&")) {
+      for (const part of line.split("&&")) {
+        const result = runPipeline(tokenize(part.trim()), "", state);
+        stderr += result.stderr;
+        exitCode = result.exitCode;
+        if (result.stderr || result.exitCode !== 0) break;
+        stdout += result.stdout;
+      }
+      continue;
+    }
     const tokens = tokenize(line);
     const redirectIndex = tokens.findIndex((t) => t === ">" || t === ">>");
     let redirect: { path: string; append: boolean } | null = null;

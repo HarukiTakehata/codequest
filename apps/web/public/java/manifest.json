@@ -1,0 +1,9 @@
+[
+  "java-wasm.iife.js",
+  "teavm/compile-classlib-teavm.bin",
+  "teavm/compiler.wasm",
+  "teavm/compiler.wasm-deobfuscator.wasm",
+  "teavm/compiler.wasm-runtime.js",
+  "teavm/runtime-classlib-teavm.bin",
+  "worker-java.js"
+]

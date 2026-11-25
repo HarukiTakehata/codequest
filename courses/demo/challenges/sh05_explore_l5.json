@@ -1,0 +1,19 @@
+{
+  "id": "sh05_explore_l5",
+  "title": "Bandit L5 · 只认格式正确的令牌",
+  "description": "**目标**：多个文件里都有长得像令牌的字符串，只有 `CQ{l5-2048}` 是真正的令牌。\n\n提示：`grep 'CQ{l5-' levels/l5/*.txt`，注意数字要完全一致。",
+  "lang": "shell",
+  "mode": "term",
+  "termMode": "explore",
+  "template": "",
+  "presetFiles": {
+    "/home/student/levels/l5/one.txt": "CQ{l5-1024}\n",
+    "/home/student/levels/l5/two.txt": "CQ{l5-2048}\n",
+    "/home/student/levels/l5/three.txt": "CQ{l5-4096}\n"
+  },
+  "token": "CQ{l5-2048}",
+  "goals": [
+    { "id": "g-correct", "text": "锁定正确令牌", "check": { "kind": "output-contains", "value": "CQ{l5-2048}" } }
+  ],
+  "requireAllGoals": false
+}

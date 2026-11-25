@@ -1,0 +1,18 @@
+{
+  "id": "sh04_explore_l4",
+  "title": "Bandit L4 · 多层目录中的 flag",
+  "description": "**目标**：令牌藏在很深的目录里，文件名以 `flag` 开头。\n\n提示：`find levels/l4 -name 'flag*'`，然后 `cat` 找到的路径。",
+  "lang": "shell",
+  "mode": "term",
+  "termMode": "explore",
+  "template": "",
+  "presetFiles": {
+    "/home/student/levels/l4/aa/bb/cc/flag-final.txt": "CQ{bandit-four}\n",
+    "/home/student/levels/l4/aa/notes.txt": "继续往下找。\n"
+  },
+  "token": "CQ{bandit-four}",
+  "goals": [
+    { "id": "g-find", "text": "找到 flag 文件", "check": { "kind": "file-exists", "path": "/home/student/levels/l4/aa/bb/cc/flag-final.txt" } }
+  ],
+  "requireAllGoals": false
+}

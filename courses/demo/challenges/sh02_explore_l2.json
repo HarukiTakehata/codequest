@@ -1,0 +1,18 @@
+{
+  "id": "sh02_explore_l2",
+  "title": "Bandit L2 · 隐藏文件里的令牌",
+  "description": "**目标**：`/home/student/levels/l2/` 下有一个以点开头的隐藏文件，令牌藏在里面。\n\n提示：`ls -a levels/l2` 或 `find levels/l2 -name '.*'`，然后 `cat` 它。找到后在剧情里提交令牌。",
+  "lang": "shell",
+  "mode": "term",
+  "termMode": "explore",
+  "template": "",
+  "presetFiles": {
+    "/home/student/levels/l2/.secret": "CQ{bandit-two}\n",
+    "/home/student/levels/l2/readme.txt": "这里没有令牌。\n"
+  },
+  "token": "CQ{bandit-two}",
+  "goals": [
+    { "id": "g-hidden", "text": "找到隐藏文件", "check": { "kind": "file-exists", "path": "/home/student/levels/l2/.secret" } }
+  ],
+  "requireAllGoals": false
+}
