@@ -25,6 +25,12 @@ export default defineConfig({
       "Cross-Origin-Resource-Policy": "same-origin",
     },
   },
-  build: { outDir: "dist", emptyOutDir: true },
+  build: {
+    outDir: "dist",
+    emptyOutDir: true,
+    // @webvirt/c2w 的 worker 内联成 data URL 后无法解析裸模块 comlink，
+    // 导致 createContainer() 永久挂起、根本不会发起 wasm 请求。
+    assetsInlineLimit: 0,
+  },
   worker: { format: "es" },
 });

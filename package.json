@@ -11,7 +11,7 @@
     "dev": "npm run build:web && wrangler dev",
     "dev:api": "wrangler dev",
     "dev:web": "npm --workspace @codequest/web run dev",
-    "build:web": "npm --workspace @codequest/web run build",
+    "build:web": "npm --workspace @codequest/web run build && node scripts/patch-c2w-workers.mjs",
     "build": "npm run build:web",
     "typecheck": "tsc -p tsconfig.json --noEmit && npm --workspace @codequest/web run typecheck",
     "test": "vitest run",
