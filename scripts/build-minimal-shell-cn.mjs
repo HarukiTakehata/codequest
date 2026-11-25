@@ -1,14 +1,15 @@
 #!/usr/bin/env node
 // 用 gh-proxy.org 拉取 busybox 源码，在 Alpine 容器里静态编译，产出最小 shell 根文件系统。
 // 不使用 Ubuntu：构建环境与目标根文件系统都基于 Alpine/musl。
-// 用法: node scripts/build-minimal-shell.mjs [--work /tmp/cq-minimal]
+// 用法: node scripts/build-minimal-shell-cn.mjs [--work /tmp/cq-minimal-cn]
+// apk 源使用清华镜像；GitHub 源码走 gh-proxy.org；全程不使用 Ubuntu。
 import { spawnSync } from "node:child_process";
 import { mkdirSync, writeFileSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
 
 const args = process.argv.slice(2);
 const workIndex = args.indexOf("--work");
-const work = workIndex >= 0 ? resolve(args[workIndex + 1]) : "/tmp/cq-minimal";
+const work = workIndex >= 0 ? resolve(args[workIndex + 1]) : "/tmp/cq-minimal-cn";
 const BUSYBOX_URL = "https://gh-proxy.org/https://github.com/vda-linux/busybox_mirror/archive/refs/tags/1_38_0.tar.gz";
 const ALPINE = "docker.io/library/alpine:3.22";
 const BUILD_IMAGE = "cq-minimal-builder:local";
@@ -29,14 +30,19 @@ if (!existsSync(`${work}/.alpine-ready`)) {
 }
 
 // 2. 构建容器：Alpine + build-base/musl，源码经 gh-proxy 下载，静态编译 busybox。
+const APK_MIRROR = "https://mirrors.tuna.tsinghua.edu.cn/alpine";
+const apkMirrorSetup = `sed -i 's|https://dl-cdn.alpinelinux.org/alpine|${APK_MIRROR}|g' /etc/apk/repositories`;
+
 const buildScript = `
 set -eux
+${apkMirrorSetup}
 apk add --no-cache build-base musl-dev linux-headers curl tar
 mkdir -p /work
 cd /work
 curl -fsSL "${BUSYBOX_URL}" -o busybox.tar.gz
 tar xzf busybox.tar.gz
-cd busybox-1_38_0
+SRC_DIR=$(find . -maxdepth 1 -type d -name 'busybox*' | head -1)
+cd "$SRC_DIR"
 make defconfig
 # 教学所需 applet（含 loopback spike 用的 nc/netstat/ps/pgrep）
 for opt in ASH AWK CAT CHMOD CP CUT ECHO FIND GREP HEAD LS MD5SUM MKDIR MV NC NETSTAT \
@@ -61,7 +67,7 @@ printf 'nameserver 8.8.8.8\\n' > /out/rootfs/etc/resolv.conf
 echo done
 `;
 const containerfile = `FROM ${ALPINE}
-RUN apk add --no-cache bash
+RUN ${apkMirrorSetup} && apk add --no-cache bash
 COPY build.sh /build.sh
 RUN chmod +x /build.sh && /build.sh
 `;
