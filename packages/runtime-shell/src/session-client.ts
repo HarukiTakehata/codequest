@@ -3,6 +3,8 @@ export interface ShellSessionLike {
   onOutput(listener: (bytes: Uint8Array) => void): void;
   write(input: string): void;
   resize(cols: number, rows: number): void;
+  interrupt(): void;
+  onError(listener: (error: { message: string }) => void): void;
   terminate(): void;
   exited: Promise<number>;
 }
