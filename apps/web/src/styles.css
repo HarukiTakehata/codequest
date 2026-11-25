@@ -29,6 +29,14 @@ button.link { background: none; border: none; color: var(--accent); padding: 4px
 
 /* 登录 / 初始化 */
 .auth-screen { min-height: 100vh; display: grid; place-items: center; background: radial-gradient(circle at 30% 20%, #243264, #0b1026 65%); }
+.setup-steps { display: flex; flex-wrap: wrap; gap: 6px 14px; list-style: none; padding: 0; margin: 16px 0 20px; }
+.setup-steps li { font-size: .78rem; color: #7f8cb8; }
+.setup-steps li.current { color: var(--accent-2); font-weight: 700; }
+.setup-steps li.done { color: var(--ok); }
+.setup-actions { display: flex; gap: 10px; margin-top: 22px; }
+.setup-actions button { width: auto; flex: 1; margin: 0; }
+.setup-summary { background: #0b1229; border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; font-size: .88rem; }
+.setup-summary p { margin: 6px 0; }
 .auth-card { width: min(420px, 92vw); background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 32px; box-shadow: 0 24px 60px rgba(0,0,0,.35); }
 .auth-card h1 { margin: 0 0 4px; font-size: 2rem; letter-spacing: .08em; }
 .auth-card label { display: block; margin: 16px 0 0; font-size: .85rem; color: #b9c5ee; }

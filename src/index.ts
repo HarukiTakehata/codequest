@@ -37,6 +37,18 @@ export function createApp() {
   app.route("/api/v1", progressRoutes);
   app.route("/api/v1", freeformRoutes);
 
+  // 设计书 §7.1 / boardroom 惯例：空实例访问根路径跳转到实例初始化页面。
+  app.get("/", async (c) => {
+    try {
+      const row = await c.env.DB.prepare("SELECT COUNT(*) AS n FROM users").first<{ n: number }>();
+      if ((row?.n ?? 0) === 0) return c.redirect("/setup");
+    } catch {
+      // 数据库不可用时交给 SPA，setup/status 会给出真实错误。
+    }
+    if (c.env.ASSETS) return c.env.ASSETS.fetch(c.req.raw);
+    return c.text("CodeQuest API — 前端资源未构建", 404);
+  });
+
   app.notFound((c) => {
     if (c.req.path.startsWith("/api/")) {
       return c.json({ error: { code: "NOT_FOUND", message: "resource not found" } }, 404);

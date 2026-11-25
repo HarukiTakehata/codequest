@@ -18,7 +18,10 @@ export default function App() {
     (async () => {
       try {
         const setup = await api.setupStatus();
-        if (setup.needs_setup) { setView("setup"); return; }
+        if (setup.needs_setup) {
+          if (location.pathname !== "/setup") history.replaceState(null, "", "/setup");
+          setView("setup"); return;
+        }
       } catch { /* 后端不可达时退到登录页 */ }
       try {
         const me = await api.me();
@@ -29,6 +32,7 @@ export default function App() {
   }, []);
 
   const onAuthDone = (next: User | null) => {
+    if (location.pathname === "/setup") history.replaceState(null, "", "/");
     if (!next) { setUser(null); setView("login"); return; }
     setUser(next);
     setView(next.must_change_password ? "password" : "courses");
