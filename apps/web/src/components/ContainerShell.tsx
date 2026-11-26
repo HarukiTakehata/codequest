@@ -8,6 +8,8 @@ import { DEFAULT_CONTAINER_ENVIRONMENTS, type ContainerEnvironment } from "../co
 import { useI18n } from "../i18n/I18nProvider";
 import { useTheme } from "../theme/ThemeProvider";
 import { terminalTheme } from "../terminal-theme";
+import { observeTerminalLayout } from "../terminal-layout";
+import { TerminalFrame } from "./TerminalFrame";
 import "@xterm/xterm/css/xterm.css";
 
 interface Props { onBack: () => void }
@@ -166,15 +168,18 @@ export function ContainerShell({ onBack }: Props) {
     terminal.loadAddon(fitAddon);
     termRef.current = terminal;
     fitRef.current = fitAddon;
-    if (host.current) { terminal.open(host.current); fitAddon.fit(); }
-    const onResize = () => { try { fitAddon.fit(); } catch { /* 未挂载 */ } };
-    window.addEventListener("resize", onResize);
+    let stopObserving: (() => void) | undefined;
+    if (host.current) {
+      terminal.open(host.current);
+      fitAddon.fit();
+      stopObserving = observeTerminalLayout(host.current, () => fitAddon.fit());
+    }
     return () => {
       sessionGeneration.current++;
       stopRef.current?.();
       progressChannelRef.current?.close();
       progressChannelRef.current = null;
-      window.removeEventListener("resize", onResize);
+      stopObserving?.();
       terminal.dispose();
     };
   }, []);
@@ -217,7 +222,7 @@ export function ContainerShell({ onBack }: Props) {
         <p>{t("container.subtitle")}</p>
         <div className="terminal-meta"><span className="tag lang">{selectedEnvironment?.image ?? environmentId}</span><span>{compatibility ? t("container.compatibility") : selectedEnvironment?.name}</span></div>
       </section>
-      <div className="terminal-shell-window"><div className="xterm-host" ref={host} aria-label={t("container.title")} /></div>
+      <TerminalFrame hostRef={host} title={t("container.title")} />
       {progress && <ContainerStartupProgress progress={progress} />}
     </div>
   );

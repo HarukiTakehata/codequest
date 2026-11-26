@@ -9,6 +9,8 @@ import type { Challenge } from "../types";
 import { useI18n } from "../i18n/I18nProvider";
 import { useTheme } from "../theme/ThemeProvider";
 import { terminalTheme } from "../terminal-theme";
+import { observeTerminalLayout } from "../terminal-layout";
+import { TerminalFrame } from "./TerminalFrame";
 
 interface Props {
   challenge: Challenge;
@@ -141,19 +143,19 @@ export function TerminalWorkbench({ challenge, onClose }: Props) {
     const fitAddon = new FitAddon();
     terminal.loadAddon(fitAddon);
     termRef.current = terminal;
+    let stopObserving: (() => void) | undefined;
     if (host.current) {
       terminal.open(host.current);
       fitAddon.fit();
+      stopObserving = observeTerminalLayout(host.current, () => fitAddon.fit());
     }
-    const onResize = () => { try { fitAddon.fit(); } catch { /* 未挂载 */ } };
-    window.addEventListener("resize", onResize);
     void start();
     return () => {
       sessionGeneration.current++;
       stopRef.current?.();
       progressChannelRef.current?.close();
       progressChannelRef.current = null;
-      window.removeEventListener("resize", onResize);
+      stopObserving?.();
       terminal.dispose();
     };
   }, []);
@@ -171,7 +173,7 @@ export function TerminalWorkbench({ challenge, onClose }: Props) {
           <button className="button button-ghost" onClick={onClose}>{t("terminal.close")}</button>
         </div>
       </header>
-      <div className="terminal-shell-window"><div className="xterm-host" ref={host} /></div>
+      <TerminalFrame hostRef={host} title={challenge.title} />
       {progress && <ContainerStartupProgress progress={progress} />}
     </div>
   );
