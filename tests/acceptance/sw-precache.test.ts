@@ -51,6 +51,8 @@ describe("M4/SW 预缓存：清单覆盖全部运行时资产且校验和一致"
   it("SW 只缓存运行时资源，不缓存课程包", () => {
     const sw = fs.readFileSync(new URL("../../apps/web/public/sw.js", import.meta.url), "utf8");
     expect(sw).toContain('codequest-runtime-v1');
+    expect(sw).toContain('codequest-c2w-runtime-v1');
+    expect(sw).toContain("name !== C2W_CACHE");
     expect(sw).toContain('/clang/');
     expect(sw).toContain('/java/');
     expect(sw).toContain('/pyodide/');

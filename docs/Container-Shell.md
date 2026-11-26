@@ -31,21 +31,35 @@
 | JavaScript | 82,317,852 | `4acb17d7e341011b41e34526ce8b8c5f2ee97bdefcba838183c73178d2848ecb` |
 
 - 运行时统一使用 `cq-dev-<language>.wasm.gz`，不再提供旧 `cq-minimal` 兼容工件或路由。
-  工件超过 Workers Assets 单文件 25MiB 上限，因此存 R2，由 `GET /runtime/cq-dev-<language>.wasm` 以 WASM + gzip 返回。
-- 上传：`npm run runtime:upload`（本地 R2）/ `npm run runtime:upload:remote`（线上 R2）。
+  工件超过 Workers Assets 单文件 25MiB 上限，因此存 R2，由 `GET /runtime/cq-dev-<language>.wasm`
+  返回 gzip 原始字节。路由不主动设置 `Content-Encoding`，VM Worker 也不依赖该头，而是按 gzip magic
+  校验并解压后再交给 `WebAssembly.instantiateStreaming`，避免浏览器自动解压导致 SHA 与缓存表示不一致。
+- 上传：`npm run runtime:upload`（本地 R2）/ `npm run runtime:upload:remote`（线上 R2）。上传命令只设置
+  `application/wasm` MIME，不写 R2 `Content-Encoding` 元数据，确保浏览器收到的压缩表示可被稳定校验。
 - 跨源隔离头（`apps/web/public/_headers` + vite + R2 路由）提供 SharedArrayBuffer，满足 c2w 运行时要求。
 
 ## 执行路径
 
 ```ts
 const session = await openContainerSession({}, {
-  wasmUrl: `/runtime/cq-dev-${environment}.wasm?env=${environment}&bytes=${compressedBytes}&v=${sha256.slice(0, 12)}`,
+  wasmUrl: `/runtime/cq-dev-${environment}.wasm?env=${environment}&bytes=${compressedBytes}&v=${sha256.slice(0, 12)}&sha256=${sha256}`,
   requestId: environment,
 });
 session.stdio.stdin.getWriter() ← xterm.onData / onBinary 原始字节
 session.stdio.stdout/stderr     → xterm.write
 session.close(stdinWriter, { stdout, stderr }) → 退出 guest、取消 reader/writer
 ```
+
+## 本地工件缓存
+
+- 所有 Shell 入口（独立终端、课程探索、自动判题、自由模式）统一从 `container-environments.json`
+  补充完整 `sha256` 与压缩 `bytes`；清单请求在页面内共享一次。
+- VM Worker 在 gzip 解压前读取原始压缩字节，按工件路径写入 Cache API 的
+  `codequest-c2w-runtime-v1`。`requestId`、进度参数与版本查询参数不进入缓存键。
+- 每次命中缓存都会重新计算 SHA-256 并校验字节数；不一致时删除旧条目、重新下载。网络响应
+  也必须通过完整 SHA-256 校验后才写入缓存，校验失败不会启动容器。
+- Web Locks 按工件路径合并多个 VM Worker 的首次下载，避免快速重置或严格模式重放产生重复费用。
+- Cache API 不可用、缓存读取失败或配额不足时降级为网络下载；Service Worker 更新会保留该缓存。
 
 ## 启动进度
 
@@ -70,14 +84,15 @@ session.close(stdinWriter, { stdout, stderr }) → 退出 guest、取消 reader/
 
 - `tests/frontend/container-shell-assets.test.ts`：确认独立终端与课程终端都使用常驻 c2w 会话、
   `stdio.stdin`，无前端拦截逻辑；`tests/frontend/shell-container-session.test.ts` 验证生命周期与脚本协议。
-- `tests/frontend/c2w-worker-bundle.test.ts`：验证 worker 进度上报、总大小注入与禁网 patch。
+- `tests/frontend/c2w-worker-bundle.test.ts`：验证 worker 进度上报、总大小注入、缓存包装顺序与禁网 patch。
+- `tests/frontend/c2w-runtime-cache.test.ts`：验证冷/热缓存、损坏缓存重下、SHA/字节数不符拒绝加载、配额降级与跨 Worker 下载锁。
 - `tests/backend/runtime-assets.test.ts`：验证 R2 路由头部与 `Content-Length`。
 - 真实 Edge + 生产 worker：Shell gzip 59,341,603 字节完成 `downloading → starting` 切换，
   新 Shell 工件浏览器冒烟通过。
 - `npm run container:test`：五个 Alpine 语言镜像真实编译/运行，并检查 git/vim/nano；Shell 额外检查 procps/iproute2。
-- 真实 `wrangler dev`：`GET /runtime/cq-dev-<language>.wasm` 返回 200 + wasm/gzip/跨源隔离头；`node scripts/test-r2-runtime.mjs` 在 Edge 中校验浏览器收到的 gzip 字节数/SHA-256 与清单一致，并按 worker 路径解压后得到 WASM magic。
-- `node scripts/test-shell-container.mjs /tmp/opencode/cq-dev-shell.wasm /opt/microsoft/msedge/msedge`：真实浏览器验证预设文件、会话持久、重置、stdin、交互终端、stderr/非零退出、动态 goals、超时后恢复、后台输出隔离与 1 MiB 输出上限。
+- 真实 `wrangler dev`：`GET /runtime/cq-dev-<language>.wasm` 返回 200 + WASM MIME + 跨源隔离头，响应体为 gzip 原始字节；`node scripts/test-r2-runtime.mjs` 在 Edge 中校验 gzip magic、字节数/SHA-256 与清单一致，并按 worker 路径解压后得到 WASM magic。
+- `node scripts/test-shell-container.mjs /tmp/opencode/cq-dev-shell.wasm /opt/microsoft/msedge/msedge`：真实浏览器验证预设文件、会话持久、重置、stdin、交互终端、stderr/非零退出、动态 goals、超时后恢复、后台输出隔离与 1 MiB 输出上限；三次会话共用一次工件请求。
 - `node scripts/test-c2w-environment.mjs <lang> /tmp/opencode/cq-dev-<lang>.wasm`：五种语言均通过 Edge 冒烟；Java 的 `javac/java` 步骤明显慢于 Shell 启动。
-- `node scripts/test-container-selector.mjs`：真实 Edge 验证五种选项全部启用、首次请求新 Shell 工件、切换 JavaScript 后请求对应工件并恢复提示符，且不请求 legacy 工件。
+- `node scripts/test-container-selector.mjs`：真实 Edge 验证五种选项全部启用、首次请求新 Shell 工件、切换 JavaScript 后请求对应工件并恢复提示符，且不请求 legacy 工件；同环境重启后服务端请求次数仍为 1。
 - `node scripts/test-minimal-rootfs.mjs`：镜像内 shell/文件/文本/进程/loopback 5/5 通过。
 - `npm run typecheck` / `npm run build` 通过。

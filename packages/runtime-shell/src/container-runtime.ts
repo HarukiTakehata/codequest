@@ -1,4 +1,5 @@
 import { RunTimeoutError, type Goal, type RunRequest, type RunResponse } from "@codequest/judge";
+import { resolveContainerRuntimeUrl } from "./container-runtime-assets";
 
 export interface ContainerStdio {
   stdin: WritableStream<Uint8Array>;
@@ -199,8 +200,9 @@ export function buildInteractiveContainerCommand(files: Record<string, string>, 
 
 async function createC2wContainer(wasmUrl: string, command: string, onExit: (code: number) => void, id: string) {
   const { createContainer } = await import("@webvirt/c2w");
+  const resolvedWasmUrl = await resolveContainerRuntimeUrl(wasmUrl);
   return createContainer({
-    wasmUrl: versionedWasmUrl(wasmUrl, id),
+    wasmUrl: versionedWasmUrl(resolvedWasmUrl, id),
     entrypoint: "/bin/sh",
     command: ["-c", command],
     env: { TERM: "xterm", PS1: "$ ", HOME: "/home/student", LC_ALL: "C" },

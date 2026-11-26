@@ -62,6 +62,7 @@ describe("Shell 常驻真实容器会话", () => {
   it("默认 Shell 会话使用新开发容器工件", () => {
     const source = read("packages/runtime-shell/src/container-runtime.ts");
     expect(source).toContain('const DEFAULT_WASM_URL = "/runtime/cq-dev-shell.wasm"');
+    expect(source).toContain("resolveContainerRuntimeUrl");
     expect(source).not.toContain("cq-minimal");
   });
 

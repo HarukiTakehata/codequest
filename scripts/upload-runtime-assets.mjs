@@ -35,7 +35,6 @@ for (const name of files) {
     "wrangler", "r2", "object", "put", `codequest-course-packs/runtime/${name}`,
     "--file", file,
     "--content-type", "application/wasm",
-    "--content-encoding", "gzip",
     ...(remote ? ["--remote"] : ["--local"]),
   ];
   console.log(`$ npx ${command.join(" ")}`);

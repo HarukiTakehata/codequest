@@ -3,8 +3,9 @@
 // 用法: node scripts/test-shell-container.mjs [raw.wasm] [firefox]
 import http from "node:http";
 import { spawn } from "node:child_process";
+import { createHash } from "node:crypto";
 import { build } from "esbuild";
-import { readFile, writeFile, stat } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { loadC2wBrowserWorkerAssets } from "./c2w-browser-assets.mjs";
 
@@ -14,6 +15,11 @@ const wasm = resolve(wasmArg);
 const port = 8935;
 const timeoutMs = Number(process.env.C2W_SHELL_TEST_TIMEOUT_MS ?? 120_000);
 const tmp = "/tmp/opencode/c2w-shell-test";
+const runtimeBytes = await readFile(wasm);
+const runtimeSha = createHash("sha256").update(runtimeBytes).digest("hex");
+const runtimeManifest = JSON.stringify([{
+  id: "shell", name: "Shell", image: "cq-dev-shell:cn", bytes: runtimeBytes.byteLength, sha256: runtimeSha,
+}]);
 
 await build({
   stdin: {
@@ -83,8 +89,9 @@ await build({
           results.backgroundSecond = await reset.run({ lang: "shell", code: "sleep 3; echo SECOND", stdin: "", files: {}, timeoutMs: 10_000 });
           report("background:done", { result: results.backgroundSecond });
           report("limit:start");
-          results.limit = await reset.run({ lang: "shell", code: "yes x | head -c 2097152", stdin: "", files: {}, timeoutMs: 10_000 });
-          report("limit:done", { bytes: results.limit.stdout.length, exitCode: results.limit.exitCode });
+          results.limit = await reset.run({ lang: "shell", code: "head -c 2097152 /dev/zero", stdin: "", files: {}, timeoutMs: 10_000 });
+          results.limit = { ...results.limit, stdout: "", bytes: results.limit.stdout.length };
+          report("limit:done", { bytes: results.limit.bytes, exitCode: results.limit.exitCode });
         } finally { report("reset:close"); reset.close(); }
 
         report("interactive:open:start");
@@ -109,6 +116,7 @@ await build({
           interactive.close(writer, { stdout: reader });
           try { await reader.cancel(); } catch {}
         }
+        results.runtimeRequests = (await fetch("/requests").then((response) => response.json())).count;
         return results;
       };`,
     resolveDir: process.cwd(), loader: "js",
@@ -116,7 +124,7 @@ await build({
   bundle: true, format: "esm", platform: "browser", outfile: `${tmp}/runner.mjs`,
 });
 const runner = await readFile(`${tmp}/runner.mjs`, "utf8");
-const { vmWorker, ringWorker, vendorFiles } = await loadC2wBrowserWorkerAssets(process.cwd(), { totalBytes: (await stat(wasm)).size });
+const { vmWorker, ringWorker, vendorFiles } = await loadC2wBrowserWorkerAssets(process.cwd(), { totalBytes: runtimeBytes.byteLength });
 const html = `<!doctype html><html><body><pre id="status">starting</pre><script type="module">
 import "/runner.mjs";
 const status = document.getElementById("status");
@@ -137,6 +145,7 @@ try {
 let finish;
 const done = new Promise((resolveDone) => { finish = resolveDone; });
 const headers = { "Cross-Origin-Opener-Policy": "same-origin", "Cross-Origin-Embedder-Policy": "require-corp" };
+const runtimeRequests = [];
 const server = http.createServer(async (req, res) => {
   const url = req.url.split("?")[0];
   if (url === "/event") {
@@ -148,6 +157,12 @@ const server = http.createServer(async (req, res) => {
     let body = ""; for await (const chunk of req) body += chunk;
     res.writeHead(204); res.end(); finish(body); return;
   }
+  if (url === "/container-environments.json") {
+    res.writeHead(200, { ...headers, "Content-Type": "application/json" }); res.end(runtimeManifest); return;
+  }
+  if (url === "/requests") {
+    res.writeHead(200, { ...headers, "Content-Type": "application/json" }); res.end(JSON.stringify({ count: runtimeRequests.length })); return;
+  }
   if (url === "/") { res.writeHead(200, { ...headers, "Content-Type": "text/html" }); res.end(html); return; }
   if (url === "/runner.mjs") { res.writeHead(200, { ...headers, "Content-Type": "text/javascript" }); res.end(runner); return; }
   if (url === "/vm-worker.js") { res.writeHead(200, { ...headers, "Content-Type": "text/javascript" }); res.end(vmWorker); return; }
@@ -155,8 +170,9 @@ const server = http.createServer(async (req, res) => {
   const vendor = vendorFiles.get(url);
   if (vendor) { res.writeHead(200, { ...headers, "Content-Type": "text/javascript" }); res.end(vendor); return; }
   if (url === "/runtime/cq-dev-shell.wasm") {
-    res.writeHead(200, { ...headers, "Content-Type": "application/wasm", "Content-Length": (await stat(wasm)).size });
-    res.end(await readFile(wasm)); return;
+    runtimeRequests.push(req.url);
+    res.writeHead(200, { ...headers, "Content-Type": "application/wasm", "Content-Length": runtimeBytes.byteLength });
+    res.end(runtimeBytes); return;
   }
   res.writeHead(404); res.end();
 });
@@ -194,8 +210,9 @@ const checks = {
   timeout: r.timeout?.exitCode === 124 && r.timeout?.stderr.includes("超过"),
   afterTimeout: r.afterTimeout?.stdout === "AFTER_TIMEOUT\n",
   background: r.backgroundSecond?.stdout === "SECOND\n",
-  limit: r.limit?.stdout.length > 0 && r.limit?.stdout.length <= 1024 * 1024,
+  limit: r.limit?.bytes > 0 && r.limit?.bytes <= 1024 * 1024,
   interactive: r.interactive?.stdout.includes("CQ{interactive-one}"),
+  cachedAcrossResets: r.runtimeRequests === 1,
 };
 await writeFile("docs/shell-container-result.json", JSON.stringify({ ...parsed, checks, browser: browserBin, at: new Date().toISOString() }, null, 2) + "\n");
 console.log("CHECKS " + JSON.stringify(checks));

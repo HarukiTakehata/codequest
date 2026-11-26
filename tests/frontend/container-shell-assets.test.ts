@@ -17,6 +17,7 @@ describe("Container Shell 与课程终端使用真实容器", () => {
     expect(source).toContain("cq-dev-");
     expect(source).toContain("codequest-c2w-progress");
     expect(source).toContain("`/runtime/cq-dev-${selectedId}.wasm${suffix}`");
+    expect(source).toContain('query.set("sha256", selected.sha256)');
     expect(source).not.toContain("cq-minimal");
     expect(source).toContain("disabled={!available}");
     expect(source).toContain("sessionGeneration");

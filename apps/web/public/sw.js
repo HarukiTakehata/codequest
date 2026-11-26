@@ -1,6 +1,8 @@
 /* CodeQuest Service Worker：运行时资产预缓存（设计书 §5.2 / §9）。
    课程包严禁进 SW 缓存——只缓存公开的 wasm 运行时与非课程内容资源。 */
 const CACHE = "codequest-runtime-v1";
+// c2w VM Worker 直接使用 Cache API；Service Worker 更新时不得清掉这份持久工件缓存。
+const C2W_CACHE = "codequest-c2w-runtime-v1";
 const CORE = ["/", "/index.html", "/shell-applets.txt", "/java/manifest.json", "/clang/asset-receipts.json"];
 
 self.addEventListener("install", (event) => {
@@ -36,7 +38,7 @@ self.addEventListener("install", (event) => {
 self.addEventListener("activate", (event) => {
   event.waitUntil((async () => {
     const names = await caches.keys();
-    await Promise.all(names.filter((name) => name !== CACHE).map((name) => caches.delete(name)));
+    await Promise.all(names.filter((name) => name !== CACHE && name !== C2W_CACHE).map((name) => caches.delete(name)));
     await self.clients.claim();
   })());
 });

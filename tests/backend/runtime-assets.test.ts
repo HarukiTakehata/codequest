@@ -30,11 +30,11 @@ describe("container2wasm 运行时工件路由（R2）", () => {
     expect(await response.text()).toContain("runtime:upload");
   });
 
-  it("已上传工件以 application/wasm + gzip 返回，并带跨源隔离头", async () => {
+  it("已上传工件以 application/wasm 返回 gzip 原始字节，并带跨源隔离头", async () => {
     const response = await fixture(true).fetch("/runtime/cq-dev-shell.wasm");
     expect(response.status).toBe(200);
     expect(response.headers.get("content-type")).toBe("application/wasm");
-    expect(response.headers.get("content-encoding")).toBe("gzip");
+    expect(response.headers.get("content-encoding")).toBeNull();
     expect(response.headers.get("content-length")).toBe("4");
     expect(response.headers.get("cross-origin-resource-policy")).toBe("same-origin");
     expect(response.headers.get("cross-origin-embedder-policy")).toBe("require-corp");

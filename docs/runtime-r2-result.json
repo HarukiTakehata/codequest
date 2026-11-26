@@ -3,6 +3,10 @@
   "encoding": "gzip",
   "fetchedBytes": 59341603,
   "fetchedSha": "460591eeb47bbf4dc948b16a562acb734c233d63eed31899881746c43083bd4d",
+  "fetchedMagic": [
+    31,
+    139
+  ],
   "finalBytes": 158826186,
   "finalMagic": [
     0,
@@ -14,8 +18,9 @@
     "http200": true,
     "bytesMatch": true,
     "shaMatch": true,
+    "gzipMagic": true,
     "wasmMagic": true
   },
   "browser": "/opt/microsoft/msedge/msedge",
-  "at": "2026-11-26T03:32:55.453Z"
+  "at": "2026-11-26T11:37:31.779Z"
 }

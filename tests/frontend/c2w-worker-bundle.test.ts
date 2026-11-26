@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { builtin } from "../helpers/sqlite-d1";
+import { C2W_RUNTIME_CACHE_MARKER, loadC2wBrowserWorkerAssets } from "../../scripts/c2w-browser-assets.mjs";
 
 const fs = builtin<{
   readFileSync(path: URL, encoding: string): string;
@@ -28,13 +29,27 @@ describe("c2w worker 裸模块改写", () => {
     expect(helper).toContain('phase: "downloading"');
     expect(helper).toContain('phase: "starting"');
     expect(script).toContain("instrumentC2wWorkerProgress");
+    expect(script).toContain("instrumentC2wWorkerCache");
     expect(script).toContain("runtimeBytes");
     expect(script).toContain("runtime/cq-dev-shell.wasm.gz");
     expect(script).not.toContain("runtime/cq-minimal.wasm.gz");
     expect(script).toMatch(/ring-buffer-worker\|vm-worker/);
-    expect(script).toContain("DecompressionStream");
-    expect(script).toContain("application/wasm");
+    expect(script).toContain("instrumentC2wWorkerCache");
+    expect(script).not.toContain("DecompressionStream");
+    expect(read("packages/runtime-shell/src/container-runtime-cache.ts")).toContain("DecompressionStream");
+    expect(read("packages/runtime-shell/src/container-runtime-cache.ts")).toContain("application/wasm");
     expect(script).toContain("node_modules/@webvirt/c2w/node_modules/@bjorn3/browser_wasi_shim/dist");
+  });
+
+  it("生成的 VM Worker 先包装进度再包装缓存，ring Worker 不注入缓存", async () => {
+    const { vmWorker, ringWorker } = await loadC2wBrowserWorkerAssets(process.cwd(), { totalBytes: 1024 });
+    expect(vmWorker).toContain(C2W_RUNTIME_CACHE_MARKER);
+    expect(vmWorker).toContain("codequest-c2w-runtime-v1");
+    expect(vmWorker).toContain("SHA-256");
+    expect(vmWorker).toContain("navigator.locks");
+    expect(vmWorker.indexOf("codequest-c2w-progress")).toBeLessThan(vmWorker.indexOf(C2W_RUNTIME_CACHE_MARKER));
+    expect(ringWorker).not.toContain(C2W_RUNTIME_CACHE_MARKER);
+    expect(ringWorker).not.toContain("codequest-c2w-runtime-v1");
   });
 
   it("Vite 禁止把 worker 内联为 data URL", () => {
@@ -63,6 +78,10 @@ describe("c2w worker 裸模块改写", () => {
       expect(source).not.toMatch(/from\s*["']@bjorn3\/browser_wasi_shim["']/);
       if (file.startsWith("vm-worker-")) {
         expect(source).toContain("codequest-c2w-progress");
+        expect(source).toContain(C2W_RUNTIME_CACHE_MARKER);
+        expect(source).toContain("codequest-c2w-runtime-v1");
+        expect(source).toContain("SHA-256");
+        expect(source).toContain("DecompressionStream");
         expect(source).toContain("59341603");
         expect(source).not.toContain("__C2W_TOTAL_BYTES__");
         expect(source).not.toContain("--net");

@@ -75,7 +75,10 @@ export function ContainerShell({ onBack }: Props) {
     const query = new URLSearchParams();
     query.set("env", selectedId);
     if (selected?.bytes) query.set("bytes", String(selected.bytes));
-    if (selected?.sha256) query.set("v", selected.sha256.slice(0, 12));
+    if (selected?.sha256) {
+      query.set("v", selected.sha256.slice(0, 12));
+      query.set("sha256", selected.sha256);
+    }
     const queryText = query.toString();
     const suffix = queryText ? `?${queryText}` : "";
     const wasmUrl = `/runtime/cq-dev-${selectedId}.wasm${suffix}`;

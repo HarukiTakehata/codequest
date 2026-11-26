@@ -23,8 +23,10 @@
         "disabled": false
       }
     ],
-    "initialUrl": "/runtime/cq-dev-shell.wasm?env=shell&bytes=59341603&v=460591eeb47b&requestId=shell",
-    "javascriptUrl": "/runtime/cq-dev-javascript.wasm?env=javascript&bytes=82317852&v=4acb17d7e341&requestId=javascript",
+    "initialUrl": "/runtime/cq-dev-shell.wasm?env=shell&bytes=59341603&v=460591eeb47b&sha256=460591eeb47bbf4dc948b16a562acb734c233d63eed31899881746c43083bd4d&requestId=shell",
+    "javascriptUrl": "/runtime/cq-dev-javascript.wasm?env=javascript&bytes=82317852&v=4acb17d7e341&sha256=4acb17d7e341011b41e34526ce8b8c5f2ee97bdefcba838183c73178d2848ecb&requestId=javascript",
+    "shellRequests": 1,
+    "javascriptRequests": 1,
     "legacyRequested": false,
     "selectedValue": "javascript",
     "image": "环境ShellC/C++JavaPythonJavaScript重启容器"
@@ -33,8 +35,10 @@
     "allEnabled": true,
     "initialNewShell": true,
     "switched": true,
+    "shellCachedAcrossRestart": true,
+    "javascriptCachedAcrossRestart": true,
     "noLegacy": true
   },
   "browser": "/opt/microsoft/msedge/msedge",
-  "at": "2026-11-26T09:32:26.127Z"
+  "at": "2026-11-26T11:41:47.509Z"
 }

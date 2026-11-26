@@ -16,7 +16,7 @@ try {
   const page = await browser.newPage();
   await page.goto(baseUrl, { waitUntil: "domcontentloaded" });
   const result = await page.evaluate(async ({ expectedBytes, expectedSha }) => {
-    const response = await fetch(`/runtime/cq-dev-shell.wasm?env=shell&bytes=${expectedBytes}&v=${expectedSha.slice(0, 12)}&requestId=shell`);
+    const response = await fetch(`/runtime/cq-dev-shell.wasm?env=shell&bytes=${expectedBytes}&v=${expectedSha.slice(0, 12)}&sha256=${expectedSha}&requestId=shell`);
     const fetched = await response.arrayBuffer();
     const digest = async (buffer) => {
       const hash = await crypto.subtle.digest("SHA-256", buffer);
@@ -24,7 +24,8 @@ try {
     };
     const fetchedSha = await digest(fetched);
     let final = fetched;
-    if (response.headers.get("content-encoding")?.includes("gzip") && fetched.byteLength > 0) {
+    const fetchedMagic = [...new Uint8Array(fetched).slice(0, 2)];
+    if (fetchedMagic[0] === 0x1f && fetchedMagic[1] === 0x8b) {
       final = await new Response(new Blob([fetched]).stream().pipeThrough(new DecompressionStream("gzip"))).arrayBuffer();
     }
     return {
@@ -32,6 +33,7 @@ try {
       encoding: response.headers.get("content-encoding"),
       fetchedBytes: fetched.byteLength,
       fetchedSha,
+      fetchedMagic,
       finalBytes: final.byteLength,
       finalMagic: [...new Uint8Array(final).slice(0, 4)],
     };
@@ -40,6 +42,7 @@ try {
     http200: result.status === 200,
     bytesMatch: result.fetchedBytes === item.bytes,
     shaMatch: result.fetchedSha === item.sha256,
+    gzipMagic: result.fetchedMagic.join(",") === "31,139",
     wasmMagic: result.finalMagic.join(",") === "0,97,115,109",
   };
   const report = { ...result, checks, browser: browserBin, at: new Date().toISOString() };

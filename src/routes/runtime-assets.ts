@@ -7,9 +7,9 @@ const LANGUAGE_IDS = new Set(["shell", "cpp", "java", "python", "javascript"]);
 export const runtimeRoutes = new Hono<Env>();
 
 function headersFor(size: number, etag?: string | null) {
+  // body 是 gzip 原始字节；不设置 Content-Encoding，防止浏览器自动解压后破坏 SHA 与缓存表示。
   const headers = new Headers({
     "Content-Type": "application/wasm",
-    "Content-Encoding": "gzip",
     "Content-Length": String(size),
     "Cache-Control": "public, max-age=31536000, immutable",
     "Cross-Origin-Resource-Policy": "same-origin",

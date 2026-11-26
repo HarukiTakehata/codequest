@@ -3,10 +3,13 @@
 // 上游 worker 使用裸模块名；浏览器没有 import map，必须改写为同源绝对 URL。
 import { readFile, readdir } from "node:fs/promises";
 import { resolve } from "node:path";
+import { build } from "esbuild";
 
 export const C2W_PROGRESS_CHANNEL = "codequest-c2w-progress";
+export const C2W_RUNTIME_CACHE_MARKER = "/* codequest-c2w-runtime-cache */";
+const progressMarker = "/* codequest-c2w-progress */";
 
-const progressPreamble = `/* codequest-c2w-progress */
+const progressPreamble = `${progressMarker}
 (() => {
   if (typeof BroadcastChannel === "undefined" || typeof ReadableStream === "undefined") return;
   const channel = new BroadcastChannel("${C2W_PROGRESS_CHANNEL}");
@@ -67,9 +70,39 @@ const progressPreamble = `/* codequest-c2w-progress */
 `;
 
 export function instrumentC2wWorkerProgress(source, { totalBytes = 0 } = {}) {
-  if (source.includes("codequest-c2w-progress") || !source.includes("fetchFile")) return source;
+  if (source.includes(progressMarker) || !source.includes("fetchFile")) return source;
   const total = Number.isFinite(totalBytes) && totalBytes > 0 ? Math.floor(totalBytes) : 0;
   return progressPreamble.replace("__C2W_TOTAL_BYTES__", String(total)) + source;
+}
+
+const cachePreambles = new Map();
+
+async function runtimeCachePreamble(root) {
+  if (!cachePreambles.has(root)) {
+    cachePreambles.set(root, build({
+      absWorkingDir: root,
+      stdin: {
+        contents: `import { fetchContainerRuntime } from "./packages/runtime-shell/src/container-runtime-cache.ts";
+          globalThis.fetch = fetchContainerRuntime;`,
+        resolveDir: root,
+        loader: "ts",
+      },
+      bundle: true,
+      write: false,
+      format: "iife",
+      platform: "browser",
+      target: "es2022",
+      minify: true,
+      legalComments: "none",
+    }).then((result) => `${C2W_RUNTIME_CACHE_MARKER}\n${result.outputFiles[0].text}\n`));
+  }
+  return cachePreambles.get(root);
+}
+
+/** 在 VM Worker 的真实 fetch 入口加入持久缓存与完整 SHA-256 校验。 */
+export async function instrumentC2wWorkerCache(source, { root = process.cwd() } = {}) {
+  if (source.includes(C2W_RUNTIME_CACHE_MARKER) || !source.includes("fetchFile")) return source;
+  return (await runtimeCachePreamble(root)) + source;
 }
 
 export function patchC2wWorkerSource(source, { network = false } = {}) {
@@ -101,8 +134,10 @@ export async function loadC2wBrowserWorkerAssets(root = process.cwd(), options =
     vendorFiles.set(`/vendor/browser_wasi_shim/${file}`, await readFile(resolve(shimDir, file)));
   }
 
+  const patchedVmSource = patchC2wWorkerSource(vmSource, options);
+  const cachedVmSource = await instrumentC2wWorkerCache(patchedVmSource, { root });
   return {
-    vmWorker: instrumentC2wWorkerProgress(patchC2wWorkerSource(vmSource, options), options),
+    vmWorker: instrumentC2wWorkerProgress(cachedVmSource, options),
     ringWorker: patchC2wWorkerSource(ringSource, options),
     vendorFiles,
   };

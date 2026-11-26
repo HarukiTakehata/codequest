@@ -39,6 +39,7 @@ await build({
         throw new Error("timeout waiting for " + label);
       };
       const runtimeRequests = async () => (await fetch("/requests").then((response) => response.json())).requests;
+      const runtimeCount = async (id) => (await runtimeRequests()).filter((url) => url.includes("cq-dev-" + id + ".wasm")).length;
       window.runSelectorChecks = async () => {
         const select = await waitFor(() => document.querySelector(".container-environment-select select"), "selector");
         await waitFor(() => {
@@ -46,20 +47,44 @@ await build({
           return items.length === 5 && items.every((option) => !option.disabled);
         }, "all artifacts enabled");
         const options = [...select.options].map((option) => ({ value: option.value, disabled: option.disabled }));
-        await waitFor(() => document.querySelector(".xterm-screen")?.textContent.includes("$"), "initial shell prompt");
+        try {
+          await waitFor(() => document.querySelector(".xterm-screen")?.textContent.includes("$"), "initial shell prompt");
+        } catch (error) {
+          report("initial-timeout", {
+            progress: document.querySelector(".container-startup-progress")?.textContent || "",
+            terminal: document.querySelector(".xterm-screen")?.textContent || "",
+          });
+          throw error;
+        }
         const initialRequests = await runtimeRequests();
         const initialUrl = initialRequests.find((url) => url.includes("cq-dev-shell.wasm")) || "";
         report("initial", { initialUrl, options });
+        const restart = document.querySelector(".page-toolbar button.button-secondary");
+        const restartSelected = async (label, trigger = () => restart.click()) => {
+          let sawProgress = false;
+          const observer = new MutationObserver(() => {
+            if (document.querySelector(".container-startup-progress")) sawProgress = true;
+          });
+          observer.observe(document.body, { childList: true, subtree: true });
+          try {
+            trigger();
+            await waitFor(() => sawProgress, label + " progress");
+            await waitFor(() => !document.querySelector(".container-startup-progress") && document.querySelector(".xterm-screen")?.textContent.includes("$"), label + " prompt");
+          } finally { observer.disconnect(); }
+        };
+        await restartSelected("restarted shell");
+        const shellRequests = await runtimeCount("shell");
         select.value = "javascript";
-        select.dispatchEvent(new Event("change", { bubbles: true }));
+        await restartSelected("javascript shell", () => select.dispatchEvent(new Event("change", { bubbles: true })));
         await waitFor(async () => (await runtimeRequests()).some((url) => url.includes("cq-dev-javascript.wasm")), "javascript wasm request");
-        await waitFor(() => document.querySelector(".xterm-screen")?.textContent.includes("$"), "javascript shell prompt");
-        await waitFor(() => !document.querySelector(".container-startup-progress"), "progress hidden");
+        await restartSelected("restarted javascript");
         const requests = await runtimeRequests();
         return {
           options,
           initialUrl,
           javascriptUrl: requests.find((url) => url.includes("cq-dev-javascript.wasm")) || "",
+          shellRequests,
+          javascriptRequests: await runtimeCount("javascript"),
           legacyRequested: requests.some((url) => url.includes("cq-minimal.wasm")),
           selectedValue: select.value,
           image: document.querySelector(".container-environment-select")?.parentElement?.textContent || "",
@@ -75,7 +100,7 @@ await build({
 });
 const runner = readFileSync(`${tmp}/runner.mjs`, "utf8");
 const css = existsSync(`${tmp}/runner.css`) ? readFileSync(`${tmp}/runner.css`) : Buffer.alloc(0);
-const shellBytes = statSync("/tmp/opencode/cq-dev-shell.wasm").size;
+const shellBytes = statSync("runtime/cq-dev-shell.wasm.gz").size;
 const assets = await loadC2wBrowserWorkerAssets(process.cwd(), { totalBytes: shellBytes });
 const manifest = readFileSync(resolve("apps/web/public/container-environments.json"));
 const html = `<!doctype html><html><head><link rel="stylesheet" href="/runner.css"></head><body><div id="root"></div><pre id="status">starting</pre><script type="module">
@@ -126,8 +151,13 @@ const server = http.createServer(async (req, res) => {
   const runtime = url.match(/^\/runtime\/cq-dev-(shell|javascript)\.wasm$/);
   if (runtime) {
     runtimeRequests.push(req.url);
-    const file = resolve(`/tmp/opencode/cq-dev-${runtime[1]}.wasm`);
-    res.writeHead(200, { ...headers, "Content-Type": "application/wasm", "Content-Length": statSync(file).size });
+    console.log("RUNTIME " + req.url);
+    const file = resolve(`runtime/cq-dev-${runtime[1]}.wasm.gz`);
+    res.writeHead(200, {
+      ...headers,
+      "Content-Type": "application/wasm",
+      "Content-Length": statSync(file).size,
+    });
     createReadStream(file).pipe(res); return;
   }
   res.writeHead(404); res.end();
@@ -155,6 +185,8 @@ const checks = {
   allEnabled: result?.options?.length === 5 && result.options.every((item) => !item.disabled),
   initialNewShell: Boolean(result?.initialUrl?.includes("cq-dev-shell.wasm")),
   switched: result?.selectedValue === "javascript" && Boolean(result?.javascriptUrl?.includes("cq-dev-javascript.wasm")),
+  shellCachedAcrossRestart: result?.shellRequests === 1,
+  javascriptCachedAcrossRestart: result?.javascriptRequests === 1,
   noLegacy: result?.legacyRequested === false,
 };
 const report = { ...parsed, checks, browser: browserBin, at: new Date().toISOString() };
