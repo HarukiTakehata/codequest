@@ -1,4 +1,5 @@
 import { compareOutput } from "./diff";
+import { RunTimeoutError } from "./types";
 import type {
   DiffMode,
   JudgeConfig,
@@ -10,6 +11,14 @@ import type {
 export type CaseRunner = (stdin: string, index: number) => Promise<RunResponse>;
 
 const TIMEOUT_EXIT_CODE = 124;
+
+function isTimeout(error: unknown): boolean {
+  if (error instanceof RunTimeoutError) return true;
+  if (!error || typeof error !== "object") return false;
+  const value = error as { name?: unknown; message?: unknown; exitCode?: unknown };
+  return value.name === "RunTimeoutError" || value.name === "TimeoutError" ||
+    value.message === "timeout" || value.exitCode === TIMEOUT_EXIT_CODE;
+}
 
 /**
  * 判题器：只依赖「拿一份 stdout/exitCode 回来」，不接触任何运行时（设计 §3 / §5.3）。
@@ -25,15 +34,16 @@ export async function judge(
     const test = config.cases[index]!;
     const mode: DiffMode = test.mode ?? "eol";
     let response: RunResponse;
+    let timer: ReturnType<typeof setTimeout> | undefined;
     try {
       response = await Promise.race([
         runCase(test.stdin, index),
-        new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error("timeout")), timeoutMs),
-        ),
+        new Promise<never>((_, reject) => {
+          timer = setTimeout(() => reject(new RunTimeoutError("timeout")), timeoutMs);
+        }),
       ]);
     } catch (error) {
-      const isTimeout = error instanceof Error && error.message === "timeout";
+      const timedOut = isTimeout(error);
       results.push({
         id: test.id,
         name: test.name,
@@ -41,18 +51,21 @@ export async function judge(
         mode,
         expected: test.expected,
         actual: "",
-        stderr: isTimeout ? "运行超时" : String(error),
-        exitCode: TIMEOUT_EXIT_CODE,
+        stderr: timedOut ? "运行超时" : String(error),
+        exitCode: timedOut ? TIMEOUT_EXIT_CODE : 1,
         diff: [],
-        reason: isTimeout ? "timeout" : "stderr",
+        reason: timedOut ? "timeout" : "stderr",
       });
       continue;
+    } finally {
+      if (timer) clearTimeout(timer);
     }
 
     const diff = compareOutput(test.expected, response.stdout, mode, test.tolerance);
     const stderr = response.stderr.trim();
     let reason: TestResult["reason"] = "ok";
-    if (stderr && !diff.length) reason = "stderr";
+    if (response.exitCode === TIMEOUT_EXIT_CODE) reason = "timeout";
+    else if (stderr && !diff.length) reason = "stderr";
     else if (diff.length) reason = "output";
     if (response.exitCode !== 0 && reason === "ok") reason = "stderr";
     results.push({

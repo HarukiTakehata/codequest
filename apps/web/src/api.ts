@@ -34,7 +34,7 @@ export type CoursePack = Record<string, string>;
 export type Progress = Record<string, unknown>;
 
 export const api = {
-  setupStatus: () => request<{ needs_setup: boolean }>("/api/v1/setup/status"),
+  setupStatus: () => request<{ needs_setup: boolean; instance_name?: string | null }>("/api/v1/setup/status"),
   setup: (instance_name: string, admin: { email: string; display_name?: string; password: string }, course_pack?: Record<string, string>) =>
     request<{ user: User }>("/api/v1/setup", {
       method: "POST", body: JSON.stringify({ instance_name, admin, ...(course_pack ? { course_pack } : {}) }),

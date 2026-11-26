@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "main": "./src/shell.ts",
-  "types": "./src/shell.ts",
+  "main": "./src/container-runtime.ts",
+  "types": "./src/container-runtime.ts",
   "dependencies": {
     "@codequest/judge": "*"
   }

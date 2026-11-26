@@ -6,6 +6,8 @@ import { api, type CoursePack, type Progress } from "../api";
 import type { Challenge, JudgeConfig } from "../types";
 import { Workbench } from "./Workbench";
 import { TerminalWorkbench } from "./TerminalWorkbench";
+import { useI18n } from "../i18n/I18nProvider";
+import type { MessageKey } from "../i18n";
 
 interface Props {
   courseId: string;
@@ -21,6 +23,7 @@ interface ActiveChallenge {
 }
 
 export function Stage({ courseId, pack, progress, onBack }: Props) {
+  const { t } = useI18n();
   const meta = JSON.parse(pack["course.json"] ?? "{}") as { entry?: string };
   const engine = useRef(new StoryEngine(parseScript(pack[meta.entry ?? "start.txt"] ?? ""), {
     pointer: Number(progress.pointer ?? 0),
@@ -29,7 +32,7 @@ export function Stage({ courseId, pack, progress, onBack }: Props) {
   const [event, setEvent] = useState<StoryEvent>(() => engine.current.next());
   const [active, setActive] = useState<ActiveChallenge | null>(null);
   const [token, setToken] = useState("");
-  const [tokenError, setTokenError] = useState("");
+  const [tokenError, setTokenError] = useState<MessageKey | null>(null);
   const [hint, setHint] = useState<string | null>(null);
   const [state, setState] = useState({
     bg: "main", figure: "mentor", bgm: "theme",
@@ -58,14 +61,14 @@ export function Stage({ courseId, pack, progress, onBack }: Props) {
 
   useEffect(() => {
     if (event.type === "hint") {
-      setHint(pack[event.file] ?? "本题暂无提示文件。");
+      setHint(pack[event.file] ?? t("stage.noHint"));
       advance();
     }
     if (["bg", "figure", "bgm", "jump"].includes(event.type)) {
       const timer = setTimeout(advance, 320);
       return () => clearTimeout(timer);
     }
-  }, [event, advance, pack]);
+  }, [event, advance, pack, t]);
 
   const openChallenge = (challengeEvent: Extract<StoryEvent, { type: "code" | "term" }>) => {
     const challenge = JSON.parse(pack[`challenges/${challengeEvent.challengeId}.json`] ?? "null") as Challenge | null;
@@ -95,34 +98,32 @@ export function Stage({ courseId, pack, progress, onBack }: Props) {
 
   const submitToken = () => {
     if (event.type !== "token") return;
-    if (token.trim() !== event.expected) { setTokenError("令牌不正确，再找找看。"); return; }
+    if (token.trim() !== event.expected) { setTokenError("stage.tokenError"); return; }
     if (event.onPass) engine.current.setVar(event.onPass, true);
-    setTokenError("");
+    setTokenError(null);
     save();
     advance();
   };
 
-  const bg = state.bg === "main"
-    ? "linear-gradient(180deg, #0b1026 0%, #1b2450 60%, #2d1b4e 100%)"
-    : state.bg;
+  const bg = state.bg === "main" ? undefined : state.bg;
   const mentor = pack["assets/mentor.svg"]
     ? `data:image/svg+xml;charset=utf-8,${encodeURIComponent(pack["assets/mentor.svg"])}`
     : "";
   return (
-    <div className="stage" style={{ backgroundImage: bg }}>
+    <div className={`stage ${state.bg === "main" ? "stage-theme-main" : ""}`} style={bg ? { backgroundImage: bg } : undefined}>
       <div className="stage-top">
-        <button className="ghost" onClick={onBack}><ArrowLeft size={15} /> 课程列表</button>
-        <span className="stage-progress">剧情节点 {engine.current.state.pointer}</span>
+        <button className="button button-ghost" onClick={onBack}><ArrowLeft size={15} />{t("stage.back")}</button>
+        <span className="stage-progress">{t("stage.node", { node: engine.current.state.pointer })}</span>
       </div>
       <div className="stage-figure">
-        {mentor && state.figure !== "none" && <img src={mentor} alt="导师立绘" />}
+        {mentor && state.figure !== "none" && <img src={mentor} alt={t("stage.mentor")} />}
       </div>
       <div className="dialogue" onClick={() => event.type === "say" && advance()}>
         {event.type === "say" && (
           <>
-            <div className="speaker">{event.speaker || "旁白"}</div>
+            <div className="speaker">{event.speaker || t("stage.narrator")}</div>
             <div className="text">{event.text}</div>
-            <div className="continue">点击继续 <ChevronDown size={13} /></div>
+            <div className="continue">{t("stage.continue")}<ChevronDown size={13} /></div>
           </>
         )}
         {event.type === "title" && <div className="title-card">{event.text}</div>}
@@ -139,29 +140,29 @@ export function Stage({ courseId, pack, progress, onBack }: Props) {
           </>
         )}
         {event.type === "code" || event.type === "term" ? (
-          <div className="text">（工作台已弹出）</div>
+          <div className="text">{t("stage.workbenchOpen")}</div>
         ) : null}
         {event.type === "token" && (
           <div className="token-gate">
-            <div className="text">输入你找到的令牌：</div>
-            <input value={token} onChange={(e) => setToken(e.target.value)} placeholder="CQ{...}" />
-            <button className="primary" onClick={submitToken}>提交令牌</button>
-            {tokenError && <p className="bad">{tokenError}</p>}
+            <div className="text">{t("stage.tokenPrompt")}</div>
+            <input value={token} onChange={(e) => setToken(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") submitToken(); }} placeholder={t("stage.tokenPlaceholder")} aria-label={t("stage.tokenPrompt")} />
+            <button className="button button-primary" onClick={submitToken}>{t("stage.tokenSubmit")}</button>
+            {tokenError && <p className="bad">{t(tokenError)}</p>}
           </div>
         )}
-        {event.type === "hint" && <div className="text">（提示面板已打开）</div>}
+        {event.type === "hint" && <div className="text">{t("stage.hintOpen")}</div>}
         {event.type === "end" && (
           <div className="ending">
-            <h2>第一章 完成</h2>
-            <p>你已经走完了演示剧情，所有四门语言的挑战都在等着你。</p>
-            <button className="primary" onClick={onBack}>返回课程列表</button>
+            <h2>{t("stage.chapterComplete")}</h2>
+            <p>{t("stage.completeDescription")}</p>
+            <button className="button button-primary" onClick={onBack}>{t("stage.back")}<ArrowLeft size={15} /></button>
           </div>
         )}
       </div>
 
       {active && (
         active.event.type === "term" && active.challenge.termMode === "explore" ? (
-          <TerminalWorkbench challenge={active.challenge} onClose={() => setActive(null)} />
+          <TerminalWorkbench challenge={active.challenge} onClose={() => { setActive(null); advance(); }} />
         ) : (
           <Workbench
             challenge={active.challenge}
@@ -174,8 +175,8 @@ export function Stage({ courseId, pack, progress, onBack }: Props) {
       {hint && (
         <div className="modal" onClick={() => setHint(null)}>
           <div className="modal-card" onClick={(e) => e.stopPropagation()}>
-            <h3>提示</h3><pre>{hint}</pre>
-            <button onClick={() => setHint(null)}>关闭</button>
+            <h3>{t("stage.hint")}</h3><pre>{hint}</pre>
+            <button className="button button-ghost" onClick={() => setHint(null)}>{t("common.close")}</button>
           </div>
         </div>
       )}

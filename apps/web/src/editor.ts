@@ -5,7 +5,7 @@ import "monaco-editor/esm/vs/basic-languages/python/python.contribution";
 import "monaco-editor/esm/vs/basic-languages/cpp/cpp.contribution";
 import "monaco-editor/esm/vs/basic-languages/java/java.contribution";
 import "monaco-editor/esm/vs/basic-languages/shell/shell.contribution";
-import EditorWorker from "monaco-editor/esm/vs/editor/editor.worker?worker";
+import EditorWorker from "./monaco-editor.worker?worker";
 import { shellCompletions } from "./shell-completion";
 
 // Vite 必须显式接线 Monaco worker；用户代码始终在独立 Worker 内运行。
@@ -21,6 +21,11 @@ if (typeof fetch !== "undefined") {
     .then((text) => { shellApplets = text.split("\n").map((s) => s.trim()).filter(Boolean); })
     .catch(() => undefined);
 }
+let shellCompletionDetail = "";
+export function setShellCompletionDetail(detail: string): void {
+  shellCompletionDetail = detail;
+}
+
 monaco.languages.registerCompletionItemProvider("shell", {
   triggerCharacters: [" "],
   provideCompletionItems(model, position) {
@@ -34,7 +39,7 @@ monaco.languages.registerCompletionItemProvider("shell", {
         label: name,
         kind: monaco.languages.CompletionItemKind.Function,
         insertText: name,
-        detail: "教学镜像 applet",
+        detail: shellCompletionDetail,
         range,
       })),
     };

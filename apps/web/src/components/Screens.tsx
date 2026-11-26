@@ -1,34 +1,65 @@
 import { useEffect, useState } from "react";
-import { Terminal, Zap } from "lucide-react";
+import {
+  ArrowRight, ArrowUpRight, BookOpen, Braces, Check, Code2, Layers3, LockKeyhole,
+  Terminal, Upload, Zap,
+} from "lucide-react";
 import { api, type CourseInfo, type User } from "../api";
 import { CONTAINER_SHELL_ENABLED } from "../features";
+import { useI18n } from "../i18n/I18nProvider";
+import type { MessageKey } from "../i18n";
+import { errorMessageKey } from "../i18n/errors";
 
-interface AuthProps { onDone: (user: User | null) => void }
+const LANGUAGE_LABELS: Record<string, string> = {
+  javascript: "JavaScript", python: "Python", java: "Java", cpp: "C / C++", shell: "Shell",
+};
+const DIFFICULTY_KEYS: Record<string, MessageKey> = {
+  beginner: "difficulty.beginner", intermediate: "difficulty.intermediate", advanced: "difficulty.advanced",
+};
+
+interface AuthProps { onDone: (user: User | null, instanceName?: string) => void }
 
 export function LoginPage({ onDone }: AuthProps) {
+  const { t } = useI18n();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+  const [error, setError] = useState<MessageKey | null>(null);
+  const [busy, setBusy] = useState(false);
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setBusy(true); setError(null);
     try { onDone((await api.login(email, password)).user); }
-    catch (err) { setError(err instanceof Error ? err.message : "登录失败"); }
+    catch (err) { setError(errorMessageKey(err, "login.failed")); }
+    finally { setBusy(false); }
   };
   return (
     <div className="auth-screen">
       <form className="auth-card" onSubmit={submit}>
-        <h1>CodeQuest</h1><p className="muted">剧情驱动的编程学习系统</p>
-        <label>邮箱<input value={email} onChange={(e) => setEmail(e.target.value)} type="email" required /></label>
-        <label>密码<input value={password} onChange={(e) => setPassword(e.target.value)} type="password" required /></label>
-        {error && <p className="bad">{error}</p>}
-        <button className="primary" type="submit">登录</button>
-        <small className="muted">账号由管理员批量发放，暂不开放注册。</small>
+        <div className="auth-emblem"><Code2 size={25} aria-hidden="true" /></div>
+        <div className="auth-heading">
+          <span className="eyebrow">{t("login.eyebrow")}</span>
+          <h1>{t("login.title")}</h1>
+          <p className="muted">{t("login.subtitle")}</p>
+        </div>
+        <div className="form-stack">
+          <label htmlFor="login-email">{t("login.email")}
+            <input id="login-email" className="field" value={email} onChange={(e) => setEmail(e.target.value)} type="email" autoComplete="email" placeholder="you@example.com" required />
+          </label>
+          <label htmlFor="login-password">{t("login.password")}
+            <input id="login-password" className="field" value={password} onChange={(e) => setPassword(e.target.value)} type="password" autoComplete="current-password" required />
+          </label>
+          {error && <p className="form-message is-error" role="alert">{t(error)}</p>}
+          <button className="button button-primary button-wide" type="submit" disabled={busy}>
+            {busy ? t("app.connecting") : t("login.submit")}<ArrowRight size={17} aria-hidden="true" />
+          </button>
+        </div>
+        <p className="auth-notice"><LockKeyhole size={14} aria-hidden="true" />{t("login.notice")}</p>
       </form>
     </div>
   );
 }
 
 export function SetupWizard({ onDone }: AuthProps) {
+  const { t } = useI18n();
   const [step, setStep] = useState(0);
   const [name, setName] = useState("CodeQuest");
   const [email, setEmail] = useState("");
@@ -36,91 +67,114 @@ export function SetupWizard({ onDone }: AuthProps) {
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [pack, setPack] = useState<Record<string, string> | null>(null);
-  const [packName, setPackName] = useState("");
-  const [packError, setPackError] = useState("");
-  const [error, setError] = useState("");
+  const [packFile, setPackFile] = useState<{ name: string; count: number } | null>(null);
+  const packName = packFile ? `${packFile.name} · ${packFile.count}` : "";
+  const [packError, setPackError] = useState<MessageKey | null>(null);
+  const [error, setError] = useState<MessageKey | null>(null);
   const [busy, setBusy] = useState(false);
-  const steps = ["实例信息", "管理员账号", "首个课程包", "确认提交"];
+  const steps = [t("setup.step.instance"), t("setup.step.admin"), t("setup.step.course"), t("setup.step.review")];
 
   const next = () => {
-    setError("");
-    if (step === 0 && !name.trim()) { setError("请填写实例名称"); return; }
+    setError(null);
+    if (step === 0 && !name.trim()) { setError("setup.error.nameRequired"); return; }
     if (step === 1) {
-      if (!email.includes("@")) { setError("请填写有效邮箱"); return; }
-      if (password.length < 10) { setError("密码至少 10 位"); return; }
-      if (password !== confirm) { setError("两次密码不一致"); return; }
+      if (!email.includes("@")) { setError("setup.error.emailRequired"); return; }
+      if (password.length < 10) { setError("setup.error.passwordShort"); return; }
+      if (password !== confirm) { setError("setup.error.passwordMismatch"); return; }
     }
     setStep((s) => Math.min(3, s + 1));
   };
 
   const loadPack = async (file: File | undefined) => {
     if (!file) return;
-    setPackError("");
+    setPackError(null);
     try {
       const parsed = JSON.parse(await file.text()) as Record<string, string>;
-      if (!parsed || typeof parsed !== "object" || !parsed["course.json"]) throw new Error("缺少 course.json");
+      if (!parsed || typeof parsed !== "object" || !parsed["course.json"]) throw new Error("missing course.json");
       setPack(parsed);
-      setPackName(`${file.name}（${Object.keys(parsed).length} 个文件）`);
-    } catch (e) { setPackError(`课程包解析失败: ${String(e)}`); }
+      setPackFile({ name: file.name, count: Object.keys(parsed).length });
+    } catch {
+      setPackError("setup.error.packInvalid");
+    }
   };
 
   const submit = async () => {
-    setBusy(true); setError("");
+    setBusy(true); setError(null);
     try {
       const user = (await api.setup(name, { email, display_name: display, password }, pack ?? undefined)).user;
-      onDone(user);
-    } catch (err) { setError(err instanceof Error ? err.message : "初始化失败"); }
-    setBusy(false);
+      onDone(user, name);
+    } catch (err) { setError(errorMessageKey(err, "setup.error.failed")); }
+    finally { setBusy(false); }
   };
 
   return (
-    <div className="auth-screen">
-      <div className="auth-card">
-        <h1>实例初始化</h1>
-        <p className="muted">首次启动需要创建实例、管理员，并可一并导入首个课程包</p>
+    <div className="auth-screen setup-screen">
+      <div className="auth-card setup-card">
+        <div className="auth-heading">
+          <span className="eyebrow">{t("setup.eyebrow")}</span>
+          <h1>{t("setup.title")}</h1>
+          <p className="muted">{t("setup.subtitle")}</p>
+        </div>
         <ol className="setup-steps">
-          {steps.map((label, i) => <li key={label} className={i === step ? "current" : i < step ? "done" : ""}>
-            {i + 1}. {label}
-          </li>)}
+          {steps.map((label, i) => (
+            <li key={`step-${i}`} className={i === step ? "current" : i < step ? "done" : ""} aria-current={i === step ? "step" : undefined}>
+              <span>{i < step ? <Check size={13} aria-hidden="true" /> : i + 1}</span>{label}
+            </li>
+          ))}
         </ol>
-        {step === 0 && (
-          <>
-            <label>实例名称<input value={name} onChange={(e) => setName(e.target.value)} required /></label>
-            <p className="muted">名称会展示在课程列表与登录页。</p>
-          </>
-        )}
-        {step === 1 && (
-          <>
-            <label>管理员邮箱<input value={email} onChange={(e) => setEmail(e.target.value)} type="email" required /></label>
-            <label>显示名<input value={display} onChange={(e) => setDisplay(e.target.value)} /></label>
-            <label>密码（至少 10 位）<input value={password} onChange={(e) => setPassword(e.target.value)} type="password" required /></label>
-            <label>确认密码<input value={confirm} onChange={(e) => setConfirm(e.target.value)} type="password" required /></label>
-          </>
-        )}
-        {step === 2 && (
-          <>
-            <label>课程包 JSON（可选）
-              <input type="file" accept="application/json,.json" onChange={(e) => void loadPack(e.target.files?.[0])} />
-            </label>
-            <p className="muted">用 `node scripts/pack-course.mjs courses/demo` 生成。跳过也可在管理端后续上传。</p>
-            {packName && <p className="ready">已选择：{packName}</p>}
-            {packError && <p className="bad">{packError}</p>}
-          </>
-        )}
-        {step === 3 && (
-          <div className="setup-summary">
-            <p><strong>实例：</strong>{name}</p>
-            <p><strong>管理员：</strong>{email}{display ? `（${display}）` : ""}</p>
-            <p><strong>课程包：</strong>{packName || "暂不导入"}</p>
-          </div>
-        )}
-        {error && <p className="bad">{error}</p>}
+        <div className="setup-content">
+          {step === 0 && (
+            <>
+              <label htmlFor="setup-name">{t("setup.instanceName")}
+                <input id="setup-name" className="field" value={name} onChange={(e) => setName(e.target.value)} required />
+              </label>
+              <p className="field-hint">{t("setup.instanceHint")}</p>
+            </>
+          )}
+          {step === 1 && (
+            <div className="form-stack">
+              <label htmlFor="setup-email">{t("setup.adminEmail")}
+                <input id="setup-email" className="field" value={email} onChange={(e) => setEmail(e.target.value)} type="email" autoComplete="email" required />
+              </label>
+              <label htmlFor="setup-display">{t("setup.displayName")}
+                <input id="setup-display" className="field" value={display} onChange={(e) => setDisplay(e.target.value)} autoComplete="name" />
+              </label>
+              <label htmlFor="setup-password">{t("setup.password")}
+                <input id="setup-password" className="field" value={password} onChange={(e) => setPassword(e.target.value)} type="password" autoComplete="new-password" required />
+              </label>
+              <label htmlFor="setup-confirm">{t("setup.confirmPassword")}
+                <input id="setup-confirm" className="field" value={confirm} onChange={(e) => setConfirm(e.target.value)} type="password" autoComplete="new-password" required />
+              </label>
+            </div>
+          )}
+          {step === 2 && (
+            <>
+              <label className="upload-field" htmlFor="setup-pack">
+                <span className="upload-icon"><Upload size={22} aria-hidden="true" /></span>
+                <strong>{t("setup.coursePack")}</strong>
+                <span>course.json</span>
+                <input id="setup-pack" type="file" accept="application/json,.json" onChange={(e) => void loadPack(e.target.files?.[0])} />
+              </label>
+              <p className="field-hint">{t("setup.courseHint")}</p>
+              {packName && <p className="form-message is-success"><Check size={15} aria-hidden="true" />{t("setup.selectedPack", { name: packName })}</p>}
+              {packError && <p className="form-message is-error" role="alert">{t(packError)}</p>}
+            </>
+          )}
+          {step === 3 && (
+            <div className="setup-summary">
+              <p><span>{t("setup.reviewInstance")}</span><strong>{name}</strong></p>
+              <p><span>{t("setup.reviewAdmin")}</span><strong>{email}{display ? ` · ${display}` : ""}</strong></p>
+              <p><span>{t("setup.reviewCourse")}</span><strong>{packName || t("setup.noCourse")}</strong></p>
+            </div>
+          )}
+          {error && <p className="form-message is-error" role="alert">{t(error)}</p>}
+        </div>
         <div className="setup-actions">
-          {step > 0 && <button className="ghost" onClick={() => setStep((s) => s - 1)} disabled={busy}>上一步</button>}
+          {step > 0 && <button type="button" className="button button-ghost" onClick={() => { setError(null); setStep((s) => s - 1); }} disabled={busy}>{t("setup.previous")}</button>}
           {step < 3
-            ? <button className="primary" onClick={next}>下一步</button>
-            : <button className="primary" onClick={() => void submit()} disabled={busy}>
-                {busy ? "正在初始化…" : "完成初始化"}
+            ? <button type="button" className="button button-primary" onClick={next}>{t("setup.next")}<ArrowRight size={16} aria-hidden="true" /></button>
+            : <button type="button" className="button button-primary" onClick={() => void submit()} disabled={busy}>
+                {busy ? t("setup.submitting") : t("setup.submit")}<Check size={16} aria-hidden="true" />
               </button>}
         </div>
       </div>
@@ -129,25 +183,40 @@ export function SetupWizard({ onDone }: AuthProps) {
 }
 
 export function ChangePasswordPage({ onDone }: AuthProps) {
+  const { t } = useI18n();
   const [current, setCurrent] = useState("");
   const [next, setNext] = useState("");
-  const [error, setError] = useState("");
+  const [error, setError] = useState<MessageKey | null>(null);
+  const [busy, setBusy] = useState(false);
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setBusy(true); setError(null);
     try {
       await api.changePassword(current, next);
       await api.logout();
       onDone(null);
-    } catch (err) { setError(err instanceof Error ? err.message : "修改失败"); }
+    } catch (err) { setError(errorMessageKey(err, "password.failed")); }
+    finally { setBusy(false); }
   };
   return (
     <div className="auth-screen">
       <form className="auth-card" onSubmit={submit}>
-        <h1>修改初始密码</h1><p className="muted">首次登录必须修改管理员发放的临时密码</p>
-        <label>当前密码<input value={current} onChange={(e) => setCurrent(e.target.value)} type="password" required /></label>
-        <label>新密码（至少 10 位）<input value={next} onChange={(e) => setNext(e.target.value)} type="password" required /></label>
-        {error && <p className="bad">{error}</p>}
-        <button className="primary" type="submit">修改并重新登录</button>
+        <div className="auth-emblem"><LockKeyhole size={24} aria-hidden="true" /></div>
+        <div className="auth-heading">
+          <span className="eyebrow">{t("password.eyebrow")}</span>
+          <h1>{t("password.title")}</h1>
+          <p className="muted">{t("password.subtitle")}</p>
+        </div>
+        <div className="form-stack">
+          <label htmlFor="current-password">{t("password.current")}
+            <input id="current-password" className="field" value={current} onChange={(e) => setCurrent(e.target.value)} type="password" autoComplete="current-password" required />
+          </label>
+          <label htmlFor="new-password">{t("password.next")}
+            <input id="new-password" className="field" value={next} onChange={(e) => setNext(e.target.value)} type="password" autoComplete="new-password" minLength={10} required />
+          </label>
+          {error && <p className="form-message is-error" role="alert">{t(error)}</p>}
+          <button className="button button-primary button-wide" type="submit" disabled={busy}>{t("password.submit")}<ArrowRight size={17} aria-hidden="true" /></button>
+        </div>
       </form>
     </div>
   );
@@ -158,47 +227,76 @@ interface CourseProps {
   onOpen: (course: CourseInfo) => void;
   onFree: () => void;
   onContainer: () => void;
-  onLogout: () => void;
 }
 
-export function CourseList({ user, onOpen, onFree, onContainer, onLogout }: CourseProps) {
+export function CourseList({ user, onOpen, onFree, onContainer }: CourseProps) {
+  const { t } = useI18n();
   const [courses, setCourses] = useState<CourseInfo[]>([]);
-  const [error, setError] = useState("");
+  const [error, setError] = useState(false);
   useEffect(() => {
-    void api.courses().then((r) => setCourses(r.courses)).catch((err) => setError(String(err)));
+    void api.courses().then((r) => setCourses(r.courses)).catch(() => setError(true));
   }, []);
+  const name = user.display_name || user.email.split("@")[0];
+
   return (
-    <div className="course-list">
-      <header>
-        <h1>CodeQuest</h1>
-        <div><span className="muted">{user.display_name ?? user.email}</span>
-          <button className="ghost" onClick={() => { void api.logout(); onLogout(); }}>退出</button></div>
-      </header>
-      <h2>我的课程</h2>
-      <div className="mode-entries">
-        <button className="free-entry" onClick={onFree}>
-          <strong className="icon-text"><Zap size={17} /> 自由模式</strong>
-          <span>不进剧情，任选语言自由写代码、自定义测试点判题（草稿云端保存）</span>
-        </button>
-        {CONTAINER_SHELL_ENABLED && (
-          <button className="free-entry" onClick={onContainer}>
-            <strong className="icon-text"><Terminal size={17} /> Container Shell</strong>
-            <span>独立容器终端：cq-minimal:cn 根文件系统快照 + busybox，支持 vi 编辑文件</span>
+    <div className="page-container course-list">
+      <section className="page-hero">
+        <div>
+          <span className="eyebrow"><span className="status-dot" />{t("courses.eyebrow")}</span>
+          <h1>{t("courses.welcome", { name })}<span className="gradient-text">.</span></h1>
+          <p>{t("courses.subtitle")}</p>
+        </div>
+        <div className="hero-code-card" aria-hidden="true">
+          <div className="hero-code-dots"><i /><i /><i /></div>
+          <code><span>const</span> journey = <em>"start"</em>;</code>
+          <code><span>while</span> (curious) &#123;</code>
+          <code>&nbsp;&nbsp;learn(<b>build</b>(idea));</code>
+          <code>&#125;</code>
+        </div>
+      </section>
+
+      <section className="mode-section" aria-labelledby="mode-heading">
+        <div className="section-heading">
+          <div><span className="section-kicker">{t("courses.playgroundKicker")}</span><h2 id="mode-heading">{t("courses.playground")}</h2></div>
+        </div>
+        <div className="mode-entries">
+          <button className="mode-card mode-card-primary" onClick={onFree}>
+            <span className="mode-icon"><Zap size={23} aria-hidden="true" /></span>
+            <span className="mode-copy"><strong>{t("courses.freeMode")}</strong><span>{t("courses.freeDescription")}</span></span>
+            <ArrowUpRight className="mode-arrow" size={20} aria-hidden="true" />
           </button>
-        )}
-      </div>
-      {error && <p className="bad">{error}</p>}
-      <div className="cards">
-        {courses.map((course) => (
-          <button key={course.id} className="course-card" onClick={() => onOpen(course)}>
-            <span className="tag lang">{course.difficulty}</span>
-            <h3>{course.title}</h3>
-            <p>{course.summary}</p>
-            <small>{course.langs.join(" · ")} · v{course.version}</small>
-          </button>
-        ))}
-        {courses.length === 0 && <p className="muted">暂无已发布课程，请联系管理员上传课程包。</p>}
-      </div>
+          {CONTAINER_SHELL_ENABLED && (
+            <button className="mode-card mode-card-terminal" onClick={onContainer}>
+              <span className="mode-icon"><Terminal size={23} aria-hidden="true" /></span>
+              <span className="mode-copy"><strong>{t("courses.containerShell")}</strong><span>{t("courses.containerDescription")}</span></span>
+              <ArrowUpRight className="mode-arrow" size={20} aria-hidden="true" />
+            </button>
+          )}
+        </div>
+      </section>
+
+      <section className="courses-section" aria-labelledby="courses-heading">
+        <div className="section-heading">
+          <div><span className="section-kicker">{t("courses.chaptersKicker")}</span><h2 id="courses-heading">{t("courses.chapters")}</h2></div>
+          <span className="count-badge"><BookOpen size={14} aria-hidden="true" />{t("courses.count", { count: courses.length })}</span>
+        </div>
+        {error && <p className="form-message is-error" role="alert">{t("courses.loadFailed")}</p>}
+        <div className="cards">
+          {courses.map((course) => (
+            <button key={course.id} className="course-card" onClick={() => onOpen(course)}>
+              <div className="course-card-top"><span className="course-symbol"><Braces size={21} aria-hidden="true" /></span><ArrowUpRight size={18} aria-hidden="true" /></div>
+              <span className="tag lang">{DIFFICULTY_KEYS[course.difficulty] ? t(DIFFICULTY_KEYS[course.difficulty]) : course.difficulty}</span>
+              <h3>{course.title}</h3>
+              <p>{course.summary}</p>
+              <div className="course-card-footer">
+                <span title={course.langs.map((lang) => LANGUAGE_LABELS[lang] ?? lang).join(" · ")}><Layers3 size={14} aria-hidden="true" />{t("courses.languageCount", { count: course.langs.length })}</span>
+                <small>v{course.version}</small>
+              </div>
+            </button>
+          ))}
+        </div>
+        {!error && courses.length === 0 && <div className="empty-state"><BookOpen size={28} aria-hidden="true" /><p>{t("courses.empty")}</p></div>}
+      </section>
     </div>
   );
 }

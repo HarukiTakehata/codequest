@@ -40,11 +40,11 @@ export function evaluateGoals(goals: Goal[], context: GoalContext): GoalStatus[]
         done = context.lastRun?.exitCode === check.value;
         break;
       case "file-exists":
-        done = Object.prototype.hasOwnProperty.call(context.files, check.path);
+        done = context.runtimeGoalResults?.[goal.id] ?? Object.prototype.hasOwnProperty.call(context.files, check.path);
         break;
       case "command-stdout": {
         const output = context.files[`__command__${check.command}`];
-        done = output === check.expect;
+        done = context.runtimeGoalResults?.[goal.id] ?? output === check.expect;
         break;
       }
       case "testcase":

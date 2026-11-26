@@ -5,33 +5,51 @@
 import http from "node:http";
 import { spawn } from "node:child_process";
 import { build } from "esbuild";
-import { readFile, writeFile } from "node:fs/promises";
+import { readFile, writeFile, stat } from "node:fs/promises";
 import { resolve } from "node:path";
+import { loadC2wBrowserWorkerAssets } from "./c2w-browser-assets.mjs";
 
 const [wasmArg, firefox = "firefox"] = process.argv.slice(2);
 if (!wasmArg) { console.error("用法: node scripts/spike-loopback.mjs <cq-teaching.wasm>"); process.exit(1); }
 const wasm = resolve(wasmArg);
 const port = 8934;
+const timeoutMs = Number(process.env.C2W_SPIKE_TIMEOUT_MS ?? 180_000);
 const tmp = "/tmp/opencode/c2w-spike";
 await build({
   stdin: {
     contents: `import { createContainer } from "@webvirt/c2w";
       window.runContainer = async (command) => {
-        const container = await createContainer({ wasmUrl: "/cq-teaching.wasm", command });
-        const decoder = new TextDecoder();
-        let output = "";
-        const reader = container.stdio.stdout.getReader();
-        while (true) { const { done, value } = await reader.read(); if (done) break; output += decoder.decode(value); }
-        return output;
+        let finish;
+        const completed = new Promise((resolveDone) => { finish = resolveDone; });
+        let stdout = "";
+        let stderr = "";
+        const container = await createContainer({
+          wasmUrl: "/cq-teaching.wasm",
+          entrypoint: "/bin/sh",
+          command,
+          onExit: () => finish(stdout + stderr),
+        });
+        const pump = async (reader, name) => {
+          const decoder = new TextDecoder();
+          let text = "";
+          try {
+            for await (const bytes of reader) {
+              text += decoder.decode(bytes, { stream: true });
+              if (name === "stdout") { stdout = text; if (text.includes("LOOPBACK_MARKER")) finish(stdout + stderr); }
+              else stderr = text;
+            }
+          } catch (error) { finish(stdout + stderr + "\\nSTDIO_ERROR " + error); }
+        };
+        void pump(container.stdio.stdout, "stdout");
+        void pump(container.stdio.stderr, "stderr");
+        return completed;
       };`,
     resolveDir: process.cwd(), loader: "js",
   },
   bundle: true, format: "esm", platform: "browser", outfile: `${tmp}/runner.mjs`,
 });
 const runner = await readFile(`${tmp}/runner.mjs`, "utf8");
-const c2wDist = resolve(process.cwd(), "node_modules/@webvirt/c2w/dist");
-const vmWorker = await readFile(resolve(c2wDist, "vm-worker.js"), "utf8");
-const ringWorker = await readFile(resolve(c2wDist, "ring-buffer-worker.js"), "utf8");
+const { vmWorker, ringWorker, vendorFiles } = await loadC2wBrowserWorkerAssets(process.cwd(), { totalBytes: (await stat(wasm)).size });
 const html = `<!doctype html><html><head><meta charset="utf-8"></head><body><script type="module">
 import "/runner.mjs";
 (async () => {
@@ -39,8 +57,8 @@ import "/runner.mjs";
   const progress = (stage) => fetch('/progress', { method: 'POST', body: stage });
   try {
     await progress('page-loaded');
-    const out = await window.runContainer(["/bin/sh", "-c",
-      "nc -l 127.0.0.1 8080 >/dev/null 2>&1 & sleep 2; netstat -ltn; echo LOOPBACK_MARKER"]);
+    const out = await window.runContainer(["-c",
+      "nc -l -p 8080 127.0.0.1 >/dev/null 2>&1 & sleep 2; netstat -ltn; echo LOOPBACK_MARKER"]);
     await progress('container-returned');
     await post({ ok: true, output: out.slice(-4000) });
   } catch (error) { await post({ ok: false, error: String(error), stack: String(error.stack ?? '') }); }
@@ -74,6 +92,8 @@ const server = http.createServer(async (req, res) => {
   if (req.url.startsWith("/ring-buffer-worker.js")) {
     res.writeHead(200, { ...headers, "Content-Type": "text/javascript" }); res.end(ringWorker); return;
   }
+  const vendor = vendorFiles.get(req.url.split("?")[0]);
+  if (vendor) { res.writeHead(200, { ...headers, "Content-Type": "text/javascript" }); res.end(vendor); return; }
   if (req.url === "/cq-teaching.wasm") {
     res.writeHead(200, { ...headers, "Content-Type": "application/wasm" });
     res.end(await readFile(wasm)); return;
@@ -85,7 +105,7 @@ console.log("SERVER_READY");
 const { rmSync } = await import("node:fs");
 rmSync(`${tmp}/profile`, { recursive: true, force: true });
 const browser = spawn(firefox, ["--headless", "--user-data-dir", `${tmp}/profile`, `http://127.0.0.1:${port}/`], { stdio: ["ignore", "ignore", "inherit"] });
-const timer = setTimeout(() => finish(JSON.stringify({ ok: false, timeout: true, stage: currentStage })), 900_000);
+const timer = setTimeout(() => finish(JSON.stringify({ ok: false, timeout: true, stage: currentStage, timeoutMs })), timeoutMs);
 const raw = await done;
 clearTimeout(timer); browser.kill("SIGTERM"); server.close();
 console.log("RESULT " + raw);

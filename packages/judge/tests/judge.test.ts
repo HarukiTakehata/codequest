@@ -56,6 +56,17 @@ describe("judge pipeline", () => {
       cases: [config.cases[0]!],
     }, 20);
     expect(timeoutResult.firstFailure?.reason).toBe("timeout");
+
+    const runtimeTimeout = await judge(() => Promise.resolve({ stdout: "", stderr: "运行超过 10ms", exitCode: 124 }), {
+      cases: [config.cases[0]!],
+    });
+    expect(runtimeTimeout.firstFailure?.reason).toBe("timeout");
+
+    const runtimeError = await judge(() => Promise.reject(new Error("container exited")), {
+      cases: [config.cases[0]!],
+    });
+    expect(runtimeError.firstFailure?.reason).toBe("stderr");
+    expect(runtimeError.firstFailure?.exitCode).toBe(1);
   });
 
   it("empty config never passes", async () => {
@@ -92,6 +103,18 @@ describe("goals evaluation (design §6.2)", () => {
       ["main", true], ["no-eval", true], ["output", true], ["exit", true],
       ["file", true], ["cmd", true], ["tc", true],
     ]);
+  });
+
+  it("运行时探测结果优先于初始文件清单", () => {
+    const statuses = evaluateGoals(goals, {
+      source: "",
+      lastRun: null,
+      files: { "/test.sh": "stale", "__command__cat /flag": "stale" },
+      runtimeGoalResults: { file: false, cmd: true },
+      testResults: [],
+    });
+    expect(statuses.find((status) => status.id === "file")?.done).toBe(false);
+    expect(statuses.find((status) => status.id === "cmd")?.done).toBe(true);
   });
 
   it("does not mark goals done on missing context (except the reverse-source check, which vacuously holds)", () => {

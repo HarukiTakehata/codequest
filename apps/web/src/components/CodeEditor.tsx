@@ -1,6 +1,8 @@
 import { useEffect, useRef } from "react";
-import { LANG_IDS, monaco, setDiagnostics } from "../editor";
+import { LANG_IDS, monaco, setDiagnostics, setShellCompletionDetail } from "../editor";
 import type { Lang } from "../types";
+import { useI18n } from "../i18n/I18nProvider";
+import { useTheme } from "../theme/ThemeProvider";
 
 interface Props {
   value: string;
@@ -10,6 +12,8 @@ interface Props {
 }
 
 export function CodeEditor({ value, language, onChange, diagnostics = [] }: Props) {
+  const { t } = useI18n();
+  const { theme } = useTheme();
   const container = useRef<HTMLDivElement>(null);
   const editor = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
   const changeRef = useRef(onChange);
@@ -20,7 +24,7 @@ export function CodeEditor({ value, language, onChange, diagnostics = [] }: Prop
     const instance = monaco.editor.create(container.current, {
       value,
       language: LANG_IDS[language],
-      theme: "vs-dark",
+      theme: theme === "dark" ? "vs-dark" : "vs",
       automaticLayout: true,
       fontSize: 13,
       minimap: { enabled: false },
@@ -36,6 +40,14 @@ export function CodeEditor({ value, language, onChange, diagnostics = [] }: Prop
   }, []);
 
   useEffect(() => {
+    monaco.editor.setTheme(theme === "dark" ? "vs-dark" : "vs");
+  }, [theme]);
+
+  useEffect(() => {
+    setShellCompletionDetail(t("completion.teachingApplet"));
+  }, [t]);
+
+  useEffect(() => {
     const model = editor.current?.getModel();
     if (model) monaco.editor.setModelLanguage(model, LANG_IDS[language]);
   }, [language]);
@@ -48,5 +60,5 @@ export function CodeEditor({ value, language, onChange, diagnostics = [] }: Prop
     if (editor.current) setDiagnostics(editor.current, diagnostics);
   }, [diagnostics]);
 
-  return <div className="code-editor" ref={container} aria-label="代码编辑器" />;
+  return <div className="code-editor" ref={container} aria-label={t("editor.label")} />;
 }

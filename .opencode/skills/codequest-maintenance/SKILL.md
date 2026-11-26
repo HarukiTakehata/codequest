@@ -33,12 +33,11 @@ description: 维护 CodeQuest 最小容器镜像、Container Shell、运行时 W
 
 ## 3. 前端 Container Shell 接入
 
-- 快照资产：`apps/web/public/container-shell/rootfs.json`、`applets.json`（由容器导出）。
-- `packages/runtime-shell/src/session-client.ts`：`spawn()` 常驻 wasi-sh 会话，`onOutput` 渲染字节流，
-  `write()` 发送命令；文件与 `vi` 编辑在同一 Worker 会话内保持。`reset` 用 terminate + 重新 spawn。
-- 组件：`apps/web/src/components/ContainerShell.tsx`，从课程列表独立入口进入，不绑定剧情/判题。
-- 判题仍用 `runWasiSh()` 逐命令路径，与交互会话互不干扰。
-- 这是「rootfs 快照 + wasi-sh busybox wasm」快速路径，**不是** container2wasm 模拟内核。
+- `packages/runtime-shell/src/container-runtime.ts` 是唯一 Shell 运行时：交互 xterm 会话与自动判题会话都直接使用 container2wasm。
+- 进入 Shell 题目或自由模式 Shell 标签时立即启动常驻容器；运行/测试点复用同一会话；手动重置关闭旧容器再开新容器；退出发送 `exit` 销毁。
+- 初始 `presetFiles` 与 stdin 在容器内通过 `/bin/busybox base64` 真实写入；自动会话用 `/bin/busybox stty -echo` 与结果标记回收 stdout/stderr。
+- `TerminalWorkbench` 是 xterm 字节流，不解析命令；`Workbench` / `FreeMode` 的 Shell 运行走 `openAutomatedContainerSession()`。
+- 已删除 TS 模拟 shell、wasi-sh、旧 rootfs 快照与临时 xterm harness。
 
 ## 4. 前端红线
 
@@ -90,16 +89,17 @@ description: 维护 CodeQuest 最小容器镜像、Container Shell、运行时 W
   commit message 末尾加 `🤖 自动提交：Hermes Agent`；本机 gpg 签名超时时用 `-c commit.gpgsign=false`。
 - 上游 WebGAL 改动只在 fork（`HarukiTakehata/WebGAL`），不要改主仓库第三方目录（AGENTS.md #1）。
 
-## 7. Container Shell 暂时搁置（2026-11-25）
+## 7. Container Shell 已启用（2026-11-26）
 
-用户决定暂时搁置 shell 模式并另找方案。代码、镜像、wasm 与资产**全部保留**，只关闭入口：
-`apps/web/src/features.ts` 的 `CONTAINER_SHELL_ENABLED = false`；重新启用时改为 `true` 即可。
+用户要求重新启用入口。`apps/web/src/features.ts` 的 `CONTAINER_SHELL_ENABLED = true`，
+课程列表与路由同时受该开关控制。当前使用禁网模式；关闭入口时只改回 `false`，
+不要删除 worker patch、同版本 shim、entrypoint 或 marker 修复。
 
-### 已解决的技术障碍（若重启务必先看）
+### 已解决的技术障碍（维护务必先看）
 
-1. **Workers Assets 单文件 25MiB 上限**：c2w wasm 98.1MiB（102,911,856 字节）不能放 `public/`。
-   现状：gzip 到 37MB 存 `runtime/cq-minimal.wasm.gz`，Worker 路由
-   `GET /runtime/cq-minimal.wasm` 从 R2 返回 `application/wasm` + `Content-Encoding: gzip`。
+1. **Workers Assets 单文件 25MiB 上限**：c2w wasm 不能放 `public/`。旧兼容工件
+   `runtime/cq-minimal.wasm.gz` 为 37MB；新语言工件为 `runtime/cq-dev-<lang>.wasm.gz`
+   （Shell 当前 58MB），统一由 R2 路由返回 `application/wasm` + `Content-Encoding: gzip`。
    上传命令 `npm run runtime:upload`（本地）/ `npm run runtime:upload:remote`（线上）。
 2. **Vite 把 c2w worker 内联成 data URL**，其中裸 `from "comlink"` 在 module worker 无法解析，
    `createContainer()` 永久挂起且不报错：设置 `build.assetsInlineLimit = 0`，
@@ -110,27 +110,53 @@ description: 维护 CodeQuest 最小容器镜像、Container Shell、运行时 W
 4. **Vite dev 代理**：`vite.config.ts` 必须代理 `/runtime` 到 `http://localhost:8787`，否则 wasm 请求落到 SPA fallback。
 5. **跨源隔离**：`_headers`、vite `server/preview.headers`、R2 路由都要带 COOP/COEP/CORP；
    否则 `createContainer()` 在 `new SharedArrayBuffer` 阶段就失败（早于任何 wasm 请求）。
+6. **DHCP 假死**：`@webvirt/c2w@0.1.0` 无条件传 `--net socket`，guest 跑 `udhcpc`；没有
+   `container.net` 对端时永远等不到响应。`scripts/c2w-browser-assets.mjs` 默认移除网络参数。
+7. **entrypoint 重复**：镜像已是 `ENTRYPOINT ["/bin/sh"]`；一次性命令必须传
+   `entrypoint: "/bin/sh"` + `command: ["-c", "..."]`，交互 shell 只传 entrypoint。
+8. **stdout 没有 EOF**：ring buffer 退出时不关闭；一次性 harness 必须以 marker / `onExit`
+   完成，不能 `for await` 等 `done`。
+9. **下载进度**：浏览器 JS 读不到 `Content-Length`；构建脚本把 gzip 工件大小注入 vm-worker，
+   worker 通过 `BroadcastChannel("codequest-c2w-progress")` 按约 1% 步长上报，页面左下角显示
+   百分比，传输完成后切换为启动滚动条。
 
-### 实测性能（本地 wrangler，非公网）
+### 实测性能（2026-11-26，浏览器端到端）
 
 ```
-fetch gzip 37.9MB  → 920ms
-gzip 解压 → 551ms
-WebAssembly.compile(98.1MiB) → 62ms
-合计 fetch+解压+编译 → 1533ms
+Firefox 160：createContainer 返回 103ms，首个 stdout 1927ms，marker 约 2.02s
+Edge 158：    createContainer 返回 71ms，首个 stdout 2019ms，marker 约 2.13s
+输出：CQ_READY / 407 / CQ_DIAG_DONE
+新 Shell 工件（158,826,186 字节 raw / 59,341,603 字节 gzip）Edge 冒烟约 2.2s，
+git/vim/nano/bash/sort/find/ps/ss/ip 与 CQ_ENV_DONE 均通过。五种语言 c2w 工件均已生成并浏览器冒烟。
 ```
 
-这只是加载/编译，**不含** Bochs/QEMU 启动容器到 shell 可用的时间；浏览器端到端计时未完成
-（headless Firefox 不稳定 + 测量脚本 upstream 端口曾写错 8801，实际 8804）。
-需要重启时先修 `scripts/...` 中的 harness，再测 `createContainer()` 到首次 stdout 的时间。
+旧版 300s / 900s “冷启动不可接受”结论来自失效 harness（worker 裸导入 + DHCP 无对端），
+不是 Bochs 固有启动时间。复现命令见 `scripts/spike-loopback.mjs` 与 `docs/spike-M3-M4.md`。
 
 ### 明确未验证
 
-- 浏览器内真实 `vi` 是否能用（wasi-sh 的 busybox 无 vi/nano，只有 c2w 真容器才有）。
-- container2wasm 模拟内核里 `nc -l 127.0.0.1` + `netstat` 的 spike（真实 Linux 容器已 5/5 通过，
-  模拟内核未验证）。
+- 浏览器内真实 `vi` 交互是否可用（c2w 内有 vi，但尚未做键盘序列 E2E）。
+- 外网：当前默认禁网；需要外网必须先实现 `container.net` / `c2w-net-proxy`。
+- 模拟内核 loopback 已通过：`0.0.0.0:8080 LISTEN`，见 `docs/spike-loopback-result.json`。
 
-## 8. 关键文档
+## 8. 语言开发容器
+
+- 构建选择器：`npm run container`（交互）或 `node scripts/build-language-container.mjs all --test`。
+- 五个镜像：`cq-dev-shell:cn`、`cq-dev-cpp:cn`、`cq-dev-java:cn`、`cq-dev-python:cn`、
+  `cq-dev-javascript:cn`；全部基于 Alpine 3.22 并包含 git/vim/nano，Shell 另含 procps/iproute2。
+- c2w 转换：`npm run container:c2w -- all --no-build`；产物为 `runtime/cq-dev-<lang>.wasm.gz`。
+- 浏览器验证：`node scripts/test-c2w-environment.mjs <lang> /tmp/opencode/cq-dev-<lang>.wasm`。
+- Shell 完整 E2E：`node scripts/test-shell-container.mjs /tmp/opencode/cq-dev-shell.wasm /opt/microsoft/msedge/msedge`，
+  覆盖会话持久/重置/stdin/交互终端/非零退出/动态 goals/超时恢复/后台输出隔离/1 MiB 上限。
+- 上传：`npm run runtime:upload` 会自动校验清单大小与 SHA-256，再上传所有 `runtime/cq-dev-*.wasm.gz`。
+- Web 选择器读取 `apps/web/public/container-environments.json`，切换环境后重启 c2w 会话。
+- 选择器 E2E：`C2W_BROWSER=/opt/microsoft/msedge/msedge node scripts/test-container-selector.mjs`，
+  验证首屏新 Shell 工件、五种选项启用、切换 JavaScript 工件与提示符恢复。
+- R2 路由 E2E：先 `npm run dev`，再 `C2W_BROWSER=/opt/microsoft/msedge/msedge node scripts/test-r2-runtime.mjs`，
+  校验浏览器收到的 gzip 大小/SHA-256 与清单一致、worker 解压后为 WASM magic。
+- 已知边界：`@webvirt/c2w@0.1.0` 未暴露 Worker `terminate()`；当前关闭会取消 reader/writer，但强制 Worker 回收仍需上游 fork。
+
+## 9. 关键文档
 
 - `docs/实现说明.md`：实现状态与验收证据。
 - `docs/任务状态.md`：已完成 / 进行中 / 未开始。

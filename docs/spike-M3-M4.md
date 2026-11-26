@@ -39,21 +39,17 @@ M2.5_JAVA_SPIKE_PASS
 - 资产 vendored 到 `apps/web/public/java/`（7.8MB，校验和见报告附录），许可声明见 `THIRD-PARTY-NOTICES.md`。
 - 未完成：同源码哈希的预编译缓存、Service Worker 预缓存、Java 补全（按设计仅高亮 + 编译诊断）。
 
-## M4 · Shell：部分可行
+## M4 · Shell：已统一迁移到真实容器
 
-### 轻量判题路径 wasi-sh：✅ 可行（已落地）
+### 原 wasi-sh / TypeScript 模拟 shell：已移除
 
-`wasi-sh@0.11.0`（ISC，busybox ash + coreutils 编译为 wasm32-wasi，fork-free）从 npm 获取并在 Node/浏览器均可运行：
+历史版本曾使用 wasi-sh 做脚本判题、用 `packages/runtime-shell/src/shell.ts` 做内存教学终端。
+用户明确要求“终端必须真实对接容器、不得使用代码模拟”后，两条路径均已删除，相关依赖与测试同步移除。
 
-```
-grep -o "CQ{[^}]*}" /home/student/secret.txt  →  "CQ{bandit-one}\n"  exit 0
-cat words.txt | sort | uniq -c               →  "      1 a\n      2 b\n"  exit 0
-```
+当前唯一 Shell 运行时是 `packages/runtime-shell/src/container-runtime.ts`：
+探索终端使用 xterm 交互会话，脚本判题使用同一常驻容器内的自动执行协议。
 
-已作为 shell 脚本判题的默认运行时（`packages/runtime-shell/src/wasi-client.ts`），课程 `sh02_script` 参考解通过真实判题器（`tests/acceptance/shell-wasi.test.ts`）。
-`goals` 的 `file-exists`/`command-stdout` 由内存教学 shell 会话回传的 `files` 求值（`TerminalWorkbench`）。
-
-### container2wasm 容器会话 + loopback 端口：⚠️ 转换成功但生产耗时不可接受，v1 不纳入主链路
+### container2wasm 容器会话 + loopback 端口：启动无响应根因已定位，模拟内核 loopback 已通过
 
 **转换已成功**：`EXIT=0`，产物 `/tmp/opencode/cq-teaching.wasm` **109MB**（教学镜像 alpine + procps + iproute2 + busybox-extras，127 步构建）。
 镜像源与网络问题均已解决：`docker.1ms.run`（emsdk/binfmt/ubuntu:latest）、
@@ -73,18 +69,39 @@ PASS 容器内 loopback 监听（nc -l -p 8080 127.0.0.1 + netstat -ltn）
 5/5 checks passed
 ```
 
-这证明**教学镜像工具集与容器内 loopback 监听**本身可行（真实 Linux 容器 + 宿主内核）。
-注意：这不等于 container2wasm 模拟内核内的可行性结论——后者受 Bochs/QEMU 模拟层影响，仍未实测。
+这证明**教学镜像工具集与真实 Linux 容器内 loopback 监听**可行（宿主内核）。
 
-**生产结论（2026-11-25，用户反馈「耗时太久」后确认）**：
-- Bochs/TinyEMU 全系统模拟 + 109MB wasm 的冷启动远慢于交互式教学可接受范围；
-  `scripts/spike-loopback.mjs` 的浏览器探针在 300s / 900s 量级内未得到结论，且 headless Firefox
-  在并发探针后进入不稳定状态。继续在该路径上投入不属于「最小可用」范围。
-- 设计书 §5.2 / §9 本就把容器会话定位为「慢、可用但非即时」，并给出降级条款（§5.5）。
-  因此 **v1 学习主链路不走 container2wasm**：shell 教学与判题全部走 `wasi-sh`（毫秒级，
-  实测见上文）与内存教学 shell；端口类关卡不纳入课程。
-- 容器会话保留为后续独立里程碑（带 wizer 预热快照 / 后台预启动 / SW 缓存 109MB 工件）的候选，
-  不在 M4 验收口径内宣称完成。
+**浏览器启动无响应根因复现（2026-11-26）**：使用现有 98.1 MiB 最小 WASM 与临时诊断页，
+得到以下对照（临时诊断页已按要求移除）：
+
+| 场景 | 实测结果 |
+|---|---|
+| 原始 c2w worker | 4 个 worker 在 34–56ms 内全部报错；没有 WASM 请求；`createContainer` 20s 未返回 |
+| worker 已修正，但保留 `--net socket` | `createContainer` 45–209ms 返回，WASM 约 0.4–0.7s 开始加载；Firefox/Edge 均长时间无 stdout |
+| worker 已修正 + 禁网 + 显式 entrypoint | Firefox 160 约 **2.02s**、Edge 158 约 **2.13s** 收到 `CQ_READY`、`407` 与完成标记 |
+
+根因不是 Bochs 本身需要数分钟，而是四个集成问题叠加：
+
+1. 旧浏览器 harness 直接提供含 `comlink` / `@bjorn3/browser_wasi_shim` 裸导入的 worker；module worker
+   加载失败后，Comlink 远程构造 Promise 不 reject、不超时，表现为永久等待。
+2. `@webvirt/c2w@0.1.0` 无条件传 `--net socket`，guest 启动执行 DHCP；原 harness 没有实现
+   `container.net` 对端，DHCP 永远等不到响应。
+3. 镜像 Entrypoint 已是 `/bin/sh`，旧 harness 再传 `command: ["/bin/sh", "-c", ...]`，实际参数变成
+   `/bin/sh /bin/sh -c ...`。一次性命令应使用 `entrypoint: "/bin/sh"` + `command: ["-c", ...]`。
+4. stdout ring buffer 没有 EOF；旧 harness 用 `for await` 等流关闭，即使命令成功也不会结束。
+   现改为以 marker / `onExit` 完成，同时持续 pump stdout 与 stderr。
+
+修复落点：`scripts/c2w-browser-assets.mjs`（worker 改写、同版本 shim、默认禁网）、
+`scripts/spike-loopback.mjs`、`scripts/patch-c2w-workers.mjs`、
+`apps/web/src/components/ContainerShell.tsx`。
+
+**模拟内核 loopback 已实测通过**：`node scripts/spike-loopback.mjs /tmp/opencode/cq-minimal.wasm firefox`
+在禁网模式下返回 `0.0.0.0:8080 LISTEN` 与 `LOOPBACK_MARKER`，结果见
+`docs/spike-loopback-result.json`。这补上了设计书 §5.5.1 要求的 container2wasm 模拟内核端口验证。
+
+**修正后的生产结论**：2026-11-25 的 300s / 900s “冷启动不可接受”结论来自失效 harness，不能作为
+Bochs 性能证据。2026-11-26 用户要求重新启用 Container Shell，入口已开启并保留禁网模式；
+Shell 教学与判题统一走 container2wasm 常驻真实容器。若以后需要外网，必须先实现完整 `container.net`，不能直接恢复网络参数。
 
 ### 历史记录：镜像源与转换过程
 
@@ -122,7 +139,7 @@ workerd 之外克隆 6+ 个 GitHub 仓库并本地编译 Bochs/QEMU/TinyEMU（12
 - 待具备完整 c2w 构建环境（docker + 可达的 Docker Hub 或可用镜像源 + 足够构建时间）后补跑 spike，再决定是否开放端口类关卡。
 
 **需要用户拍板**：是否接受将 container2wasm 容器会话（真实 Linux 进程/端口状态检查）延期到 M4 后续迭代，
-第一版只交付 wasi-sh 脚本判题 + 内存文件系统探索关（当前状态）？设计书 §5.5 已为该降级预留条款。
+第一版只交付 wasi-sh 脚本判题 + 内存文件系统探索关（当时状态）？设计书 §5.5 已为该降级预留条款。
 
 ## 附录 · vendored 工件校验和
 

@@ -1,0 +1,21 @@
+{
+  "status": 200,
+  "encoding": "gzip",
+  "fetchedBytes": 59341603,
+  "fetchedSha": "460591eeb47bbf4dc948b16a562acb734c233d63eed31899881746c43083bd4d",
+  "finalBytes": 158826186,
+  "finalMagic": [
+    0,
+    97,
+    115,
+    109
+  ],
+  "checks": {
+    "http200": true,
+    "bytesMatch": true,
+    "shaMatch": true,
+    "wasmMagic": true
+  },
+  "browser": "/opt/microsoft/msedge/msedge",
+  "at": "2026-11-26T03:32:55.453Z"
+}

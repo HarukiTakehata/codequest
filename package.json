@@ -20,7 +20,14 @@
     "db:migrate": "wrangler d1 migrations apply codequest_local --local",
     "db:reset": "node scripts/reset-local-db.mjs --yes",
     "runtime:upload": "node scripts/upload-runtime-assets.mjs",
-    "runtime:upload:remote": "node scripts/upload-runtime-assets.mjs --remote"
+    "runtime:upload:remote": "node scripts/upload-runtime-assets.mjs --remote",
+    "container": "node scripts/build-language-container.mjs",
+    "container:list": "node scripts/build-language-container.mjs list",
+    "container:test": "node scripts/test-language-containers.mjs",
+    "test:shell-container": "node scripts/test-shell-container.mjs",
+    "test:container-selector": "node scripts/test-container-selector.mjs",
+    "test:runtime-route": "node scripts/test-r2-runtime.mjs",
+    "container:c2w": "node scripts/containers/build-c2w.mjs"
   },
   "dependencies": {
     "hono": "^4.6.14",
@@ -42,7 +49,6 @@
     "vite": "^6.0.5",
     "vitest": "^2.1.8",
     "wabt": "^1.0.39",
-    "wasi-sh": "^0.11.0",
     "wrangler": "^4.0.0",
     "xterm-pty": "^0.13.0"
   },

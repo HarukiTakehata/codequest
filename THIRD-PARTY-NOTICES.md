@@ -26,8 +26,24 @@
 | WebGAL / WebGAL_Terre | MPL-2.0 | 剧情引擎参考（本仓库为自研兼容子集，未引入其代码） |
 | container2wasm | Apache-2.0 | shell 容器会话路线（M4 spike 使用其 `c2w` 工具，不改源码） |
 | Pyodide | MPL-2.0 | Python 运行时 |
-| wasi-sh | ISC | shell 脚本判题轻量路径（真实 busybox ash + coreutils wasm） |
 | Monaco Editor | MIT | 代码编辑器 |
 | React / Vite / Hono / zod / ulid | MIT | 前端与后端框架 |
 
 Java 进阶篇若后来采用 container2wasm JDK 镜像，按补充选型文档 §7 使用 Eclipse Temurin/Adoptium（MIT-style）JDK，并继续排除 CheerpJ。
+
+## 语言开发容器（`scripts/containers/`）
+
+这些镜像用于本地开发、CI 和 container2wasm 转换，不在服务端执行学员代码。
+
+| 组件 | 许可 | 来源 |
+|---|---|---|
+| Alpine Linux / apk | MIT | https://alpinelinux.org/about/ |
+| BusyBox | GPL-2.0-only | https://busybox.net/ |
+| OpenJDK 21 | GPL-2.0-with-classpath-exception | https://openjdk.org/legal/gplv2+ce.html |
+| Node.js / npm | Node.js MIT + npm Artistic-2.0 / npm License | https://github.com/nodejs/node 、 https://github.com/npm/cli |
+| CPython / pip | Python Software Foundation License | https://docs.python.org/3/license.html 、 https://github.com/pypa/pip |
+| GCC / GDB / CMake | GPL-3.0-with-GCC-exception / GPL-2.0 / BSD-3-Clause | 各上游项目 |
+| Git / Vim / Nano | GPL-2.0 / Vim License / GPL-3.0 | 各上游项目 |
+
+发布容器工件时应保留各包的原始许可与源码获取指针；OpenJDK 的 GPL+Classpath Exception 声明需随
+Java 镜像一起提供。

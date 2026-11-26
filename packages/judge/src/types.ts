@@ -17,6 +17,15 @@ export interface RunResponse {
   logs?: string[];
 }
 
+/** 运行时与判题器共享的超时类型；Worker 边界至少应保留 name 与 exitCode。 */
+export class RunTimeoutError extends Error {
+  readonly exitCode = 124;
+  constructor(message = "运行超时") {
+    super(message);
+    this.name = "RunTimeoutError";
+  }
+}
+
 export type DiffMode = "exact" | "eol" | "ws" | "regex-line" | "numeric-tol";
 
 export interface TestCase {
@@ -86,6 +95,8 @@ export interface GoalContext {
   lastRun: RunResponse | null;
   files: Record<string, string>;
   testResults: TestResult[];
+  /** 运行时在同会话中探测 file-exists / command-stdout 的结果。 */
+  runtimeGoalResults?: Record<string, boolean>;
 }
 
 export interface GoalStatus {

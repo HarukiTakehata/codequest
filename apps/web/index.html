@@ -3,7 +3,25 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>CodeQuest · 剧情驱动的编程学习</title>
+    <meta name="theme-color" content="#ffffff" />
+    <script>
+      (function () {
+        var mode = "light";
+        try {
+          var saved = localStorage.getItem("ui-theme");
+          mode = saved === "light" || saved === "dark"
+            ? saved
+            : window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+        } catch (_) {}
+        document.documentElement.classList.toggle("dark", mode === "dark");
+        document.documentElement.dataset.theme = mode;
+        document.documentElement.style.colorScheme = mode;
+      })();
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;600&amp;display=swap" />
+    <title>CodeQuest · Learn by playing</title>
   </head>
   <body>
     <div id="root"></div>

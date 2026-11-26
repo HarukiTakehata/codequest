@@ -12,6 +12,10 @@ export const DEFAULT_FREE_TESTCASES: FreeTestCase[] = [
   { id: "t1", name: "样例", stdin: "", expected: "hello\n", mode: "eol" },
 ];
 
+export function isFactoryFreeSample(test: FreeTestCase): boolean {
+  return test.id === "t1" && test.name === "样例" && test.stdin === "" && test.expected === "hello\n" && test.mode === "eol";
+}
+
 /** 自由模式自定义测试点 → 统一判题配置（复用同一纯函数判题器）。 */
 export function buildFreeJudgeConfig(cases: FreeTestCase[]): JudgeConfig {
   return {

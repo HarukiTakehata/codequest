@@ -3,7 +3,6 @@ import { judge } from "@codequest/judge";
 import { FREE_TEMPLATES } from "../../src/routes/freeform";
 import { executeJs } from "../../packages/runtime-js/src/exec";
 import { executePython, type PyodideLike } from "../../packages/runtime-pyodide/src/execute";
-import { runWasiSh } from "../../packages/runtime-shell/src/wasi-client";
 import { createCompiler } from "@live-codes/clang-wasm";
 import { toRunResponse, type ClangCompiler } from "../../packages/runtime-clang/src/online";
 import { loadPyodide } from "pyodide";
@@ -22,13 +21,6 @@ describe("自由模式：默认模板开箱可运行", () => {
     const pyodide = (await loadPyodide()) as unknown as PyodideLike;
     const verdict = await judge((stdin) => executePython(pyodide, {
       lang: "python", code: FREE_TEMPLATES.python, stdin, timeoutMs: 10_000,
-    }), { cases });
-    expect(verdict.passed).toBe(true);
-  }, 30_000);
-
-  it("Shell 模板通过默认测试点（真实 wasi-sh）", async () => {
-    const verdict = await judge((stdin) => runWasiSh({
-      lang: "shell", code: FREE_TEMPLATES.shell, stdin, timeoutMs: 10_000,
     }), { cases });
     expect(verdict.passed).toBe(true);
   }, 30_000);

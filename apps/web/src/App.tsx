@@ -5,13 +5,21 @@ import { Stage } from "./components/Stage";
 import { FreeMode } from "./components/FreeMode";
 import { ContainerShell } from "./components/ContainerShell";
 import { ChangePasswordPage, CourseList, LoginPage, SetupWizard } from "./components/Screens";
+import { AppShell } from "./components/AppShell";
+import { useI18n } from "./i18n/I18nProvider";
 import "./styles.css";
 
 type View = "loading" | "setup" | "login" | "password" | "courses" | "game" | "free" | "container";
 
 export default function App() {
+  return <CodeQuestApp />;
+}
+
+function CodeQuestApp() {
+  const { t } = useI18n();
   const [view, setView] = useState<View>("loading");
   const [user, setUser] = useState<User | null>(null);
+  const [instanceName, setInstanceName] = useState("CodeQuest");
   const [course, setCourse] = useState<CourseInfo | null>(null);
   const [pack, setPack] = useState<CoursePack | null>(null);
   const [progress, setProgress] = useState<Progress>({});
@@ -20,6 +28,7 @@ export default function App() {
     (async () => {
       try {
         const setup = await api.setupStatus();
+        if (setup.instance_name) setInstanceName(setup.instance_name);
         if (setup.needs_setup) {
           if (location.pathname !== "/setup") history.replaceState(null, "", "/setup");
           setView("setup"); return;
@@ -33,11 +42,20 @@ export default function App() {
     })();
   }, []);
 
-  const onAuthDone = (next: User | null) => {
+  const onAuthDone = (next: User | null, nextInstanceName?: string) => {
     if (location.pathname === "/setup") history.replaceState(null, "", "/");
     if (!next) { setUser(null); setView("login"); return; }
+    if (nextInstanceName) setInstanceName(nextInstanceName);
     setUser(next);
     setView(next.must_change_password ? "password" : "courses");
+  };
+
+  const logout = () => {
+    void api.logout().catch(() => undefined);
+    setUser(null);
+    setCourse(null);
+    setPack(null);
+    setView("login");
   };
 
   const openCourse = async (info: CourseInfo) => {
@@ -48,25 +66,28 @@ export default function App() {
     setView("game");
   };
 
-  if (view === "loading") return <div className="loading">正在连接 CodeQuest…</div>;
-  if (view === "setup") return <SetupWizard onDone={onAuthDone} />;
-  if (view === "login") return <LoginPage onDone={onAuthDone} />;
-  if (view === "password") return <ChangePasswordPage onDone={onAuthDone} />;
-  if (view === "courses" && user) {
-    return <CourseList
-      user={user}
-      onOpen={(c) => void openCourse(c)}
-      onFree={() => setView("free")}
-      onContainer={() => { if (CONTAINER_SHELL_ENABLED) setView("container"); }}
-      onLogout={() => { setUser(null); setView("login"); }}
-    />;
-  }
-  if (view === "free") return <FreeMode onBack={() => setView("courses")} />;
-  if (view === "container" && CONTAINER_SHELL_ENABLED) {
-    return <ContainerShell onBack={() => setView("courses")} />;
-  }
-  if (view === "game" && course && pack) {
-    return <Stage courseId={course.id} pack={pack} progress={progress} onBack={() => setView("courses")} />;
-  }
-  return <div className="loading">状态异常，请刷新页面。</div>;
+  return (
+    <AppShell appName={instanceName} user={user} onLogout={logout}>
+      {view === "loading" && <div className="loading-screen"><span className="loading-orbit" /><p>{t("app.connecting")}</p></div>}
+      {view === "setup" && <SetupWizard onDone={onAuthDone} />}
+      {view === "login" && <LoginPage onDone={onAuthDone} />}
+      {view === "password" && <ChangePasswordPage onDone={onAuthDone} />}
+      {view === "courses" && user && (
+        <CourseList
+          user={user}
+          onOpen={(c) => void openCourse(c)}
+          onFree={() => setView("free")}
+          onContainer={() => { if (CONTAINER_SHELL_ENABLED) setView("container"); }}
+        />
+      )}
+      {view === "free" && <FreeMode onBack={() => setView("courses")} />}
+      {view === "container" && CONTAINER_SHELL_ENABLED && <ContainerShell onBack={() => setView("courses")} />}
+      {view === "game" && course && pack && (
+        <Stage courseId={course.id} pack={pack} progress={progress} onBack={() => setView("courses")} />
+      )}
+      {view !== "loading" && !["setup", "login", "password", "courses", "free", "container", "game"].includes(view) && (
+        <div className="loading-screen">{t("app.invalidState")}</div>
+      )}
+    </AppShell>
+  );
 }
