@@ -73,6 +73,14 @@ describe("Shell 常驻真实容器会话", () => {
     expect(command).toContain("exec /bin/sh");
   });
 
+  it("交互会话把前端网格尺寸写入容器 TTY，并导出给 vim 等程序", () => {
+    const command = buildInteractiveContainerCommand({}, false, { cols: 123, rows: 37 });
+    expect(command).toContain("/bin/busybox stty rows 37 cols 123");
+    expect(command).toContain("export COLUMNS=123 LINES=37");
+    expect(command.indexOf("stty rows 37 cols 123")).toBeLessThan(command.indexOf("exec /bin/sh"));
+    expect(buildInteractiveContainerCommand({}, false, { cols: 0, rows: -1 })).toContain("stty rows 25 cols 80");
+  });
+
   it("Shell 题目进入即启动容器，运行复用会话，重置与退出销毁", () => {
     const source = read("apps/web/src/components/Workbench.tsx");
     expect(source).toContain("openAutomatedContainerSession");

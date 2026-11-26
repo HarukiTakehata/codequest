@@ -27,6 +27,8 @@ export interface ContainerSessionOptions {
   automated?: boolean;
   onExit?: (code: number) => void;
   requestId?: string;
+  /** 容器 TTY 的固定网格尺寸；WASI 版 c2w 不支持启动后 resize。 */
+  terminalSize?: { cols: number; rows: number };
 }
 
 const DEFAULT_WASM_URL = "/runtime/cq-dev-shell.wasm";
@@ -72,6 +74,11 @@ function writeFileCommand(path: string, content: string): string[] {
 
 function requestId(): string {
   return globalThis.crypto?.randomUUID?.().replaceAll("-", "") ?? Math.random().toString(36).slice(2);
+}
+
+function terminalDimension(value: number | undefined, fallback: number, max: number): number {
+  if (typeof value !== "number" || !Number.isSafeInteger(value) || value < 1) return fallback;
+  return Math.min(value, max);
 }
 
 function versionedWasmUrl(wasmUrl: string, id: string): string {
@@ -190,9 +197,18 @@ export function parseContainerGoalChecks(goals: Goal[], stdout: string): Record<
   return results;
 }
 
-export function buildInteractiveContainerCommand(files: Record<string, string>, automated = false): string {
+export function buildInteractiveContainerCommand(
+  files: Record<string, string>,
+  automated = false,
+  terminalSize?: { cols: number; rows: number },
+): string {
+  const cols = terminalDimension(terminalSize?.cols, 80, 400);
+  const rows = terminalDimension(terminalSize?.rows, 25, 200);
   return [
     ...buildContainerInitialization(files),
+    // WASI 版 c2w 只能在此处设置一次 TTY 尺寸；启动后再变更 xterm 网格会与容器失配。
+    `/bin/busybox stty rows ${rows} cols ${cols}`,
+    `export COLUMNS=${cols} LINES=${rows}`,
     ...(automated ? ["/bin/busybox stty -echo", "PS1=", "export PS1"] : []),
     "exec /bin/sh",
   ].join("\n");
@@ -263,7 +279,7 @@ export async function openContainerSession(
   let closeStarted = false;
   const container = await createC2wContainer(
     options.wasmUrl ?? DEFAULT_WASM_URL,
-    buildInteractiveContainerCommand(files, options.automated),
+    buildInteractiveContainerCommand(files, options.automated, options.terminalSize),
     (code) => {
       exited = true;
       options.onExit?.(code);

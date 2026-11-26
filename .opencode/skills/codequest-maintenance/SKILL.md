@@ -37,6 +37,8 @@ description: 维护 CodeQuest 最小容器镜像、Container Shell、运行时 W
 - 进入 Shell 题目或自由模式 Shell 标签时立即启动常驻容器；运行/测试点复用同一会话；手动重置关闭旧容器再开新容器；退出发送 `exit` 销毁。
 - 初始 `presetFiles` 与 stdin 在容器内通过 `/bin/busybox base64` 真实写入；自动会话用 `/bin/busybox stty -echo` 与结果标记回收 stdout/stderr。
 - `TerminalWorkbench` 是 xterm 字节流，不解析命令；`Workbench` / `FreeMode` 的 Shell 运行走 `openAutomatedContainerSession()`。
+- 容器 TTY 尺寸只在启动前测量一次：xterm 完成字体/布局适配后把 `cols/rows` 传给 `openContainerSession()`，初始化脚本执行 `stty rows ... cols ...` 并导出 `COLUMNS/LINES`。**不要恢复 `observeTerminalLayout` 的动态 fit**：当前工件是纯 WASI，c2w 没有 PTY resize 通道，运行中改网格必然与容器失配；窗口缩放后宿主可滚动，需要新尺寸就重启容器。
+- `apps/web` 直接固定 `@xterm/xterm@5.5.0`；6.0.0 的 `requestMode` 被当前 Vite/esbuild 压缩成未定义变量，vim 的 DECRQM 会立即崩溃。`npm run test:terminal-vim` 验证尺寸、DECRQM 与 vim 真实编辑。
 - 已删除 TS 模拟 shell、wasi-sh、旧 rootfs 快照与临时 xterm harness。
 
 ## 4. 前端红线

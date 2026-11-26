@@ -8,7 +8,6 @@ import { DEFAULT_CONTAINER_ENVIRONMENTS, type ContainerEnvironment } from "../co
 import { useI18n } from "../i18n/I18nProvider";
 import { useTheme } from "../theme/ThemeProvider";
 import { terminalTheme } from "../terminal-theme";
-import { observeTerminalLayout } from "../terminal-layout";
 import { TerminalFrame } from "./TerminalFrame";
 import "@xterm/xterm/css/xterm.css";
 
@@ -84,6 +83,15 @@ export function ContainerShell({ onBack }: Props) {
     const wasmUrl = `/runtime/cq-dev-${selectedId}.wasm${suffix}`;
     term.writeln(`\x1b[36m${tRef.current("container.loading", { name: selected?.name ?? selectedId })}\x1b[0m`);
 
+    // 字体与布局稳定后只测量一次；WASI 版 c2w 的 TTY 尺寸启动后无法更新。
+    if (document.fonts) await document.fonts.ready.catch(() => undefined);
+    try { fitRef.current?.fit(); } catch { /* 终端可能正在卸载 */ }
+    const terminalSize = { cols: term.cols, rows: term.rows };
+    if (host.current) {
+      host.current.dataset.terminalCols = String(terminalSize.cols);
+      host.current.dataset.terminalRows = String(terminalSize.rows);
+    }
+
     let stopped = false;
     let startupTimer: ReturnType<typeof setTimeout> | null = null;
     let session;
@@ -91,6 +99,7 @@ export function ContainerShell({ onBack }: Props) {
       session = await openContainerSession({}, {
         wasmUrl,
         requestId: selectedId,
+        terminalSize,
         onExit: (code) => {
           if (generation !== sessionGeneration.current || stopped) return;
           stopped = true;
@@ -169,18 +178,17 @@ export function ContainerShell({ onBack }: Props) {
     terminal.loadAddon(fitAddon);
     termRef.current = terminal;
     fitRef.current = fitAddon;
-    let stopObserving: (() => void) | undefined;
     if (host.current) {
       terminal.open(host.current);
       fitAddon.fit();
-      stopObserving = observeTerminalLayout(host.current, () => fitAddon.fit());
     }
     return () => {
       sessionGeneration.current++;
       stopRef.current?.();
       progressChannelRef.current?.close();
       progressChannelRef.current = null;
-      stopObserving?.();
+      termRef.current = null;
+      fitRef.current = null;
       terminal.dispose();
     };
   }, []);

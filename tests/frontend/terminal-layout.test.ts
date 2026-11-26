@@ -11,12 +11,13 @@ describe("仿真终端布局", () => {
     expect(block(styles, ".terminal-shell-window")).toContain("border-radius: 0");
     expect(block(styles, ".xterm-host")).toContain("box-sizing: content-box");
     expect(block(styles, ".xterm-host")).toContain("padding: 12px 14px");
+    expect(block(styles, ".xterm-host")).toContain("overflow: auto");
     expect(block(styles, ".xterm-host .xterm")).toContain("padding: 0");
     expect(styles).toContain("overflow-x: hidden !important");
     expect(styles).toContain("overflow-y: auto; background: transparent;");
   });
 
-  it("两个真实终端入口共享机壳、标题栏和状态栏", () => {
+  it("两个真实终端入口共享机壳，并把一次测量的网格尺寸传给容器", () => {
     const frame = read("apps/web/src/components/TerminalFrame.tsx");
     expect(frame).toContain("terminal-titlebar");
     expect(frame).toContain("terminal-statusbar");
@@ -24,7 +25,10 @@ describe("仿真终端布局", () => {
     for (const component of ["TerminalWorkbench.tsx", "ContainerShell.tsx"]) {
       const source = read(`apps/web/src/components/${component}`);
       expect(source).toContain("<TerminalFrame");
-      expect(source).toContain("observeTerminalLayout");
+      expect(source).toContain("const terminalSize = { cols: term.cols, rows: term.rows }");
+      expect(source).toContain("fitAddon.fit()");
+      expect(source).toContain("terminalSize,");
+      expect(source).not.toContain("observeTerminalLayout");
       expect(source).not.toContain('window.addEventListener("resize"');
     }
   });

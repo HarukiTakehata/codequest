@@ -9,7 +9,6 @@ import type { Challenge } from "../types";
 import { useI18n } from "../i18n/I18nProvider";
 import { useTheme } from "../theme/ThemeProvider";
 import { terminalTheme } from "../terminal-theme";
-import { observeTerminalLayout } from "../terminal-layout";
 import { TerminalFrame } from "./TerminalFrame";
 
 interface Props {
@@ -25,6 +24,7 @@ export function TerminalWorkbench({ challenge, onClose }: Props) {
   tRef.current = t;
   const host = useRef<HTMLDivElement>(null);
   const termRef = useRef<Terminal | null>(null);
+  const fitRef = useRef<FitAddon | null>(null);
   const stopRef = useRef<(() => void) | null>(null);
   const inputDisposablesRef = useRef<Array<{ dispose(): void }>>([]);
   const progressChannelRef = useRef<BroadcastChannel | null>(null);
@@ -59,12 +59,22 @@ export function TerminalWorkbench({ challenge, onClose }: Props) {
     setProgress({ phase: "downloading", loaded: 0, total: 0 });
     term.clear();
 
+    // 字体与布局稳定后只测量一次；WASI 版 c2w 的 TTY 尺寸启动后无法更新。
+    if (document.fonts) await document.fonts.ready.catch(() => undefined);
+    try { fitRef.current?.fit(); } catch { /* 终端可能正在卸载 */ }
+    const terminalSize = { cols: term.cols, rows: term.rows };
+    if (host.current) {
+      host.current.dataset.terminalCols = String(terminalSize.cols);
+      host.current.dataset.terminalRows = String(terminalSize.rows);
+    }
+
     let stopped = false;
     let startupTimer: ReturnType<typeof setTimeout> | null = null;
     let session;
     try {
       session = await openContainerSession(challenge.presetFiles, {
         requestId: "shell-terminal",
+        terminalSize,
         onExit: (code) => {
           if (generation !== sessionGeneration.current || stopped) return;
           stopped = true;
@@ -143,11 +153,10 @@ export function TerminalWorkbench({ challenge, onClose }: Props) {
     const fitAddon = new FitAddon();
     terminal.loadAddon(fitAddon);
     termRef.current = terminal;
-    let stopObserving: (() => void) | undefined;
+    fitRef.current = fitAddon;
     if (host.current) {
       terminal.open(host.current);
       fitAddon.fit();
-      stopObserving = observeTerminalLayout(host.current, () => fitAddon.fit());
     }
     void start();
     return () => {
@@ -155,7 +164,8 @@ export function TerminalWorkbench({ challenge, onClose }: Props) {
       stopRef.current?.();
       progressChannelRef.current?.close();
       progressChannelRef.current = null;
-      stopObserving?.();
+      termRef.current = null;
+      fitRef.current = null;
       terminal.dispose();
     };
   }, []);

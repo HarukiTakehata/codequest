@@ -16,6 +16,7 @@
     "@codequest/runtime-pyodide": "*",
     "@codequest/runtime-shell": "*",
     "@xterm/addon-fit": "^0.11.0",
+    "@xterm/xterm": "5.5.0",
     "lucide-react": "^1.80.0",
     "monaco-editor": "^0.52.0",
     "react": "^19.0.0",
