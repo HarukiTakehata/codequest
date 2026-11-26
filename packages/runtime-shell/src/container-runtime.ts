@@ -28,7 +28,7 @@ export interface ContainerSessionOptions {
   requestId?: string;
 }
 
-const DEFAULT_WASM_URL = "/runtime/cq-minimal.wasm";
+const DEFAULT_WASM_URL = "/runtime/cq-dev-shell.wasm";
 const MAX_INJECTED_BYTES = 512 * 1024;
 const MAX_OUTPUT_BYTES = 1024 * 1024;
 const MAX_PROTOCOL_BUFFER_CHARS = 4 * 1024 * 1024;

@@ -154,7 +154,7 @@ const server = http.createServer(async (req, res) => {
   if (url === "/ring-buffer-worker.js") { res.writeHead(200, { ...headers, "Content-Type": "text/javascript" }); res.end(ringWorker); return; }
   const vendor = vendorFiles.get(url);
   if (vendor) { res.writeHead(200, { ...headers, "Content-Type": "text/javascript" }); res.end(vendor); return; }
-  if (url === "/runtime/cq-minimal.wasm" || url === "/runtime/cq-dev-shell.wasm") {
+  if (url === "/runtime/cq-dev-shell.wasm") {
     res.writeHead(200, { ...headers, "Content-Type": "application/wasm", "Content-Length": (await stat(wasm)).size });
     res.end(await readFile(wasm)); return;
   }

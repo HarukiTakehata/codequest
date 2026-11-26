@@ -97,9 +97,9 @@ description: 维护 CodeQuest 最小容器镜像、Container Shell、运行时 W
 
 ### 已解决的技术障碍（维护务必先看）
 
-1. **Workers Assets 单文件 25MiB 上限**：c2w wasm 不能放 `public/`。旧兼容工件
-   `runtime/cq-minimal.wasm.gz` 为 37MB；新语言工件为 `runtime/cq-dev-<lang>.wasm.gz`
-   （Shell 当前 58MB），统一由 R2 路由返回 `application/wasm` + `Content-Encoding: gzip`。
+1. **Workers Assets 单文件 25MiB 上限**：c2w wasm 不能放 `public/`。运行时统一使用
+   `runtime/cq-dev-<lang>.wasm.gz`（Shell 当前 58MB），由 R2 路由返回
+   `application/wasm` + `Content-Encoding: gzip`；旧 `cq-minimal` 兼容工件与路由已移除。
    上传命令 `npm run runtime:upload`（本地）/ `npm run runtime:upload:remote`（线上）。
 2. **Vite 把 c2w worker 内联成 data URL**，其中裸 `from "comlink"` 在 module worker 无法解析，
    `createContainer()` 永久挂起且不报错：设置 `build.assetsInlineLimit = 0`，

@@ -13,6 +13,7 @@ describe("仿真终端布局", () => {
     expect(block(styles, ".xterm-host")).toContain("padding: 12px 14px");
     expect(block(styles, ".xterm-host .xterm")).toContain("padding: 0");
     expect(styles).toContain("overflow-x: hidden !important");
+    expect(styles).toContain("overflow-y: auto; background: transparent;");
   });
 
   it("两个真实终端入口共享机壳、标题栏和状态栏", () => {

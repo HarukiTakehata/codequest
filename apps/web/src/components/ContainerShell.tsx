@@ -78,9 +78,7 @@ export function ContainerShell({ onBack }: Props) {
     if (selected?.sha256) query.set("v", selected.sha256.slice(0, 12));
     const queryText = query.toString();
     const suffix = queryText ? `?${queryText}` : "";
-    const wasmUrl = selectedId === "shell" && !selected?.bytes
-      ? `/runtime/cq-minimal.wasm?env=${selectedId}`
-      : `/runtime/cq-dev-${selectedId}.wasm${suffix}`;
+    const wasmUrl = `/runtime/cq-dev-${selectedId}.wasm${suffix}`;
     term.writeln(`\x1b[36m${tRef.current("container.loading", { name: selected?.name ?? selectedId })}\x1b[0m`);
 
     let stopped = false;
@@ -193,7 +191,6 @@ export function ContainerShell({ onBack }: Props) {
   }, [manifestReady]);
 
   const selectedEnvironment = environments.find((item) => item.id === environmentId);
-  const compatibility = environmentId === "shell" && !selectedEnvironment?.bytes;
 
   return (
     <div className="page-container container-shell">
@@ -208,7 +205,7 @@ export function ContainerShell({ onBack }: Props) {
               void start(next);
             }}>
               {environments.map((item) => {
-                const available = item.id === "shell" || item.bytes > 0;
+                const available = item.bytes > 0;
                 return <option key={item.id} value={item.id} disabled={!available}>{item.name}{available ? "" : t("container.artifactPending")}</option>;
               })}
             </select>
@@ -220,7 +217,7 @@ export function ContainerShell({ onBack }: Props) {
         <span className="eyebrow"><span className="status-dot" />{t("container.eyebrow")}</span>
         <h1><TerminalIcon size={34} />{t("container.title")}<span className="gradient-text">.</span></h1>
         <p>{t("container.subtitle")}</p>
-        <div className="terminal-meta"><span className="tag lang">{selectedEnvironment?.image ?? environmentId}</span><span>{compatibility ? t("container.compatibility") : selectedEnvironment?.name}</span></div>
+        <div className="terminal-meta"><span className="tag lang">{selectedEnvironment?.image ?? environmentId}</span><span>{selectedEnvironment?.name}</span></div>
       </section>
       <TerminalFrame hostRef={host} title={t("container.title")} />
       {progress && <ContainerStartupProgress progress={progress} />}

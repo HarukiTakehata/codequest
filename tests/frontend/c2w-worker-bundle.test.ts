@@ -29,6 +29,8 @@ describe("c2w worker 裸模块改写", () => {
     expect(helper).toContain('phase: "starting"');
     expect(script).toContain("instrumentC2wWorkerProgress");
     expect(script).toContain("runtimeBytes");
+    expect(script).toContain("runtime/cq-dev-shell.wasm.gz");
+    expect(script).not.toContain("runtime/cq-minimal.wasm.gz");
     expect(script).toMatch(/ring-buffer-worker\|vm-worker/);
     expect(script).toContain("DecompressionStream");
     expect(script).toContain("application/wasm");
@@ -61,7 +63,7 @@ describe("c2w worker 裸模块改写", () => {
       expect(source).not.toMatch(/from\s*["']@bjorn3\/browser_wasi_shim["']/);
       if (file.startsWith("vm-worker-")) {
         expect(source).toContain("codequest-c2w-progress");
-        expect(source).toContain("37903167");
+        expect(source).toContain("59341603");
         expect(source).not.toContain("__C2W_TOTAL_BYTES__");
         expect(source).not.toContain("--net");
       }

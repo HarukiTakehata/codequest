@@ -66,5 +66,6 @@ describe("语言开发容器构建脚本", () => {
     expect(upload).toContain("createHash");
     expect(upload).toContain("item.bytes !== bytes.length");
     expect(upload).toContain("item.sha256 !== sha256");
+    expect(upload).not.toContain("cq-minimal.wasm.gz");
   });
 });

@@ -30,8 +30,8 @@
 | Python | 176,050,296 | `bae5701222fdcabe78deed0fc5d0a74a0d91b4f6a982867bc0fd996b5b6c6489` |
 | JavaScript | 82,317,852 | `4acb17d7e341011b41e34526ce8b8c5f2ee97bdefcba838183c73178d2848ecb` |
 
-- 旧 `cq-minimal:cn` / `cq-minimal.wasm.gz` 保留兼容。新工件超过 Workers Assets 单文件 25MiB
-  上限，因此存 R2，由 `GET /runtime/cq-dev-<language>.wasm` 以 WASM + gzip 返回。
+- 运行时统一使用 `cq-dev-<language>.wasm.gz`，不再提供旧 `cq-minimal` 兼容工件或路由。
+  工件超过 Workers Assets 单文件 25MiB 上限，因此存 R2，由 `GET /runtime/cq-dev-<language>.wasm` 以 WASM + gzip 返回。
 - 上传：`npm run runtime:upload`（本地 R2）/ `npm run runtime:upload:remote`（线上 R2）。
 - 跨源隔离头（`apps/web/public/_headers` + vite + R2 路由）提供 SharedArrayBuffer，满足 c2w 运行时要求。
 
@@ -51,7 +51,7 @@ session.close(stdinWriter, { stdout, stderr }) → 退出 guest、取消 reader/
 
 - 页面左下角显示固定半透明进度组件。
 - vm-worker 流式读取 WASM 时，通过 `BroadcastChannel("codequest-c2w-progress")` 上报
-  `loaded / total`；总大小优先来自环境清单的 `bytes` 查询参数，旧工件回退到构建时注入值。
+  `loaded / total`；总大小优先来自环境清单的 `bytes` 查询参数，缺少时回退到构建时注入的 Shell 工件大小。
 - 下载阶段显示百分比与 MiB；传输完成后切换为不确定滚动条，表示 Bochs / runc / shell 启动中。
 - 收到首个 stdout 或容器退出后隐藏；下载失败时显示错误摘要。
 
@@ -72,8 +72,8 @@ session.close(stdinWriter, { stdout, stderr }) → 退出 guest、取消 reader/
   `stdio.stdin`，无前端拦截逻辑；`tests/frontend/shell-container-session.test.ts` 验证生命周期与脚本协议。
 - `tests/frontend/c2w-worker-bundle.test.ts`：验证 worker 进度上报、总大小注入与禁网 patch。
 - `tests/backend/runtime-assets.test.ts`：验证 R2 路由头部与 `Content-Length`。
-- 真实 Edge + 生产 worker：旧 gzip 37,903,167 字节与新 Shell gzip 59,341,603 字节均完成
-  `downloading → starting` 切换；新 Shell 工件浏览器冒烟通过。
+- 真实 Edge + 生产 worker：Shell gzip 59,341,603 字节完成 `downloading → starting` 切换，
+  新 Shell 工件浏览器冒烟通过。
 - `npm run container:test`：五个 Alpine 语言镜像真实编译/运行，并检查 git/vim/nano；Shell 额外检查 procps/iproute2。
 - 真实 `wrangler dev`：`GET /runtime/cq-dev-<language>.wasm` 返回 200 + wasm/gzip/跨源隔离头；`node scripts/test-r2-runtime.mjs` 在 Edge 中校验浏览器收到的 gzip 字节数/SHA-256 与清单一致，并按 worker 路径解压后得到 WASM magic。
 - `node scripts/test-shell-container.mjs /tmp/opencode/cq-dev-shell.wasm /opt/microsoft/msedge/msedge`：真实浏览器验证预设文件、会话持久、重置、stdin、交互终端、stderr/非零退出、动态 goals、超时后恢复、后台输出隔离与 1 MiB 输出上限。

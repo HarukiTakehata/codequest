@@ -188,7 +188,6 @@ export const zh: Record<keyof typeof en, string> = {
   "container.subtitle": "直接运行 c2w 转换的最小镜像，完整 rootfs、BusyBox 与 vi 均来自镜像本身；xterm.js 只做字节级终端仿真，不拦截命令。",
   "container.environment": "环境",
   "container.artifactPending": "（工件待生成）",
-  "container.compatibility": "cq-minimal:cn（兼容）",
   "container.manifestUnavailable": "环境清单加载失败",
 
   "progress.loading": "正在传输 WASM 运行时",

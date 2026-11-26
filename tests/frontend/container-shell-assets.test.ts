@@ -16,7 +16,8 @@ describe("Container Shell 与课程终端使用真实容器", () => {
     expect(source).toContain("container-environments.json");
     expect(source).toContain("cq-dev-");
     expect(source).toContain("codequest-c2w-progress");
-    expect(source).toContain("/runtime/cq-minimal.wasm?env=${selectedId}");
+    expect(source).toContain("`/runtime/cq-dev-${selectedId}.wasm${suffix}`");
+    expect(source).not.toContain("cq-minimal");
     expect(source).toContain("disabled={!available}");
     expect(source).toContain("sessionGeneration");
     expect(source).toContain("inputDisposablesRef");
@@ -52,6 +53,8 @@ describe("Container Shell 与课程终端使用真实容器", () => {
     expect(component).toContain("is-indeterminate");
     expect(styles).toContain(".container-startup-progress { position: fixed; left: 20px; bottom: 20px;");
     expect(styles).toContain("background: hsl(var(--card) / 0.84)");
+    expect(styles).toContain(".container-startup-bar { height: 100%; border-radius: inherit; background: hsl(var(--primary)); }");
+    expect(styles).not.toContain("linear-gradient(90deg, hsl(var(--primary)), hsl(var(--success)))");
     expect(styles).toContain("@keyframes container-startup-scroll");
   });
 });

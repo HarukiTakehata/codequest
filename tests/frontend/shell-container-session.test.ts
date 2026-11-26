@@ -59,6 +59,12 @@ describe("Shell 常驻真实容器会话", () => {
     expect(parseContainerGoalChecks(goals, "\n__CQ_GOAL_0__=1\n__CQ_GOAL_1__=0\n")).toEqual({ file: true, cmd: false });
   });
 
+  it("默认 Shell 会话使用新开发容器工件", () => {
+    const source = read("packages/runtime-shell/src/container-runtime.ts");
+    expect(source).toContain('const DEFAULT_WASM_URL = "/runtime/cq-dev-shell.wasm"');
+    expect(source).not.toContain("cq-minimal");
+  });
+
   it("自动会话关闭 TTY 回显并启动真实 /bin/sh", () => {
     const command = buildInteractiveContainerCommand({}, true);
     expect(command).toContain("stty -echo");

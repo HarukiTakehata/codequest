@@ -19,7 +19,15 @@ await build({
     contents: `import React from "react";
       import { createRoot } from "react-dom/client";
       import { ContainerShell } from "./apps/web/src/components/ContainerShell.tsx";
-      createRoot(document.getElementById("root")).render(React.createElement(ContainerShell, { onBack: () => {} }));
+      import { I18nProvider } from "./apps/web/src/i18n/I18nProvider.tsx";
+      import { ThemeProvider } from "./apps/web/src/theme/ThemeProvider.tsx";
+      createRoot(document.getElementById("root")).render(
+        React.createElement(I18nProvider, null,
+          React.createElement(ThemeProvider, null,
+            React.createElement(ContainerShell, { onBack: () => {} }),
+          ),
+        ),
+      );
       const report = (stage, data = {}) => fetch("/event", { method: "POST", body: JSON.stringify({ stage, ...data }) }).catch(() => {});
       const waitFor = async (check, label) => {
         const started = Date.now();

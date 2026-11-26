@@ -3,7 +3,7 @@
 // 用法: node scripts/upload-runtime-assets.mjs [--remote]
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 const args = process.argv.slice(2);
@@ -13,10 +13,7 @@ if (args.some((arg) => arg !== "--remote")) {
 }
 const remote = args.includes("--remote");
 const runtimeDir = resolve(process.cwd(), "runtime");
-const files = [
-  ...(existsSync(resolve(runtimeDir, "cq-minimal.wasm.gz")) ? ["cq-minimal.wasm.gz"] : []),
-  ...readdirSync(runtimeDir).filter((name) => /^cq-dev-.+\.wasm\.gz$/.test(name)).sort(),
-];
+const files = readdirSync(runtimeDir).filter((name) => /^cq-dev-.+\.wasm\.gz$/.test(name)).sort();
 if (!files.length) {
   console.error("没有可上传的运行时工件；请先运行 c2w 转换并 gzip");
   process.exit(1);

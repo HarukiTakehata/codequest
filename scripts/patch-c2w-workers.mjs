@@ -13,7 +13,7 @@ if (!existsSync(dist)) {
 }
 
 const vendor = resolve(dist, "vendor");
-const runtimeBytes = statSync(resolve(root, "runtime/cq-minimal.wasm.gz")).size;
+const runtimeBytes = statSync(resolve(root, "runtime/cq-dev-shell.wasm.gz")).size;
 mkdirSync(vendor, { recursive: true });
 cpSync(resolve(root, "node_modules/comlink/dist/esm"), resolve(vendor, "comlink"), { recursive: true, force: true });
 // 与 @webvirt/c2w 的实际依赖保持一致；根目录可能安装了另一个 shim 版本。

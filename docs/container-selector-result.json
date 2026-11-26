@@ -27,7 +27,7 @@
     "javascriptUrl": "/runtime/cq-dev-javascript.wasm?env=javascript&bytes=82317852&v=4acb17d7e341&requestId=javascript",
     "legacyRequested": false,
     "selectedValue": "javascript",
-    "image": "环境ShellC/C++JavaPythonJavaScriptcq-dev-javascript:cn 重启容器返回课程列表"
+    "image": "环境ShellC/C++JavaPythonJavaScript重启容器"
   },
   "checks": {
     "allEnabled": true,
@@ -36,5 +36,5 @@
     "noLegacy": true
   },
   "browser": "/opt/microsoft/msedge/msedge",
-  "at": "2026-11-26T03:26:16.488Z"
+  "at": "2026-11-26T09:32:26.127Z"
 }

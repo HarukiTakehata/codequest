@@ -186,7 +186,6 @@ export const en = {
   "container.subtitle": "Run a c2w-converted minimal image with its full rootfs, BusyBox, and vi. xterm.js is a byte-level terminal and never interprets your commands.",
   "container.environment": "Environment",
   "container.artifactPending": "(artifact pending)",
-  "container.compatibility": "cq-minimal:cn (compatible)",
   "container.manifestUnavailable": "Environment manifest unavailable",
 
   "progress.loading": "Loading the WASM runtime",

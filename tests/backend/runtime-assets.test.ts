@@ -25,13 +25,13 @@ function fixture(withObject: boolean) {
 
 describe("container2wasm 运行时工件路由（R2）", () => {
   it("未上传工件时返回 404 并提示上传命令", async () => {
-    const response = await fixture(false).fetch("/runtime/cq-minimal.wasm");
+    const response = await fixture(false).fetch("/runtime/cq-dev-shell.wasm");
     expect(response.status).toBe(404);
     expect(await response.text()).toContain("runtime:upload");
   });
 
   it("已上传工件以 application/wasm + gzip 返回，并带跨源隔离头", async () => {
-    const response = await fixture(true).fetch("/runtime/cq-minimal.wasm");
+    const response = await fixture(true).fetch("/runtime/cq-dev-shell.wasm");
     expect(response.status).toBe(200);
     expect(response.headers.get("content-type")).toBe("application/wasm");
     expect(response.headers.get("content-encoding")).toBe("gzip");
@@ -39,7 +39,14 @@ describe("container2wasm 运行时工件路由（R2）", () => {
     expect(response.headers.get("cross-origin-resource-policy")).toBe("same-origin");
     expect(response.headers.get("cross-origin-embedder-policy")).toBe("require-corp");
     expect(response.headers.get("etag")).toBe('"test-etag"');
-    expect(response.headers.get("cache-control")).toBe("no-cache");
+    expect(response.headers.get("cache-control")).toContain("immutable");
+  });
+
+  it("不再提供旧 cq-minimal 兼容路由", async () => {
+    const app = fixture(true);
+    const response = await app.fetch("/runtime/cq-minimal.wasm");
+    expect(response.status).toBe(404);
+    expect(app.keys).toEqual([]);
   });
 
   it("按语言读取对应 c2w 工件", async () => {
@@ -58,7 +65,7 @@ describe("container2wasm 运行时工件路由（R2）", () => {
   });
 
   it("公开访问，不需要登录会话", async () => {
-    const response = await fixture(true).fetch("/runtime/cq-minimal.wasm");
+    const response = await fixture(true).fetch("/runtime/cq-dev-shell.wasm");
     expect(response.status).not.toBe(401);
   });
 });
