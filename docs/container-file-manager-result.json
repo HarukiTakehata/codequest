@@ -1,0 +1,73 @@
+{
+  "ok": true,
+  "checks": {
+    "realC2wRoot": true,
+    "managerCommandsVisible": true,
+    "compactCommands": true,
+    "terminalCommandsVisible": true,
+    "terminalToManager": true,
+    "managerToTerminal": true,
+    "foregroundProtected": true,
+    "materialIconsLocal": true,
+    "singleRuntime": true,
+    "noEchoHacks": true,
+    "noPageErrors": true,
+    "terminalSizeUnchanged": true
+  },
+  "result": {
+    "initialRoot": "/home/student",
+    "terminalSamples": [
+      {
+        "label": "initial ls",
+        "text": "Loading Shell environment…                 $ printf '\\n%s\\n' __CQ_8d94f381__; ( pwd -P && busybox ls -la -- .; ) 2>&1; printf '\\n%s:%s\\n' __CQ_END_8d94f381__ $?__CQ_8d94f381__/home/studenttotal 4drwxr-sr-x    1 student  student         60 Nov 27 04:20 .drwxr-xr-x    1 root     root            60 Nov 26 02:58 ..-rw-------    1 student  student        116 Nov 27 04:20 .ash_history__CQ_END_8d94f381__:0                 $  "
+      },
+      {
+        "label": "mkdir docs",
+        "text": "__CQ_8d94f381__/home/studenttotal 4drwxr-sr-x    1 student  student         60 Nov 27 04:20 .drwxr-xr-x    1 root     root            60 Nov 26 02:58 ..-rw-------    1 student  student        116 Nov 27 04:20 .ash_history__CQ_END_8d94f381__:0                 $ printf '\\n%s\\n' __CQ_1a76c2ac__; ( busybox mkdir '/home/student/docs'; ) 2>&1; printf '\\n%s:%s\\n' __CQ_END_1a76c2ac__ $?__CQ_1a76c2ac____CQ_END_1a76c2ac__:0                 $ printf '\\n%s\\n' __CQ_b9b24d6d__; ( busybox ls -la -- '/home/student'; ) 2>&1; printf '\\n%s:%s\\n' __CQ_END_b9b24d6d__ $?__CQ_b9b24d6d__total 4drwxr-sr-x    1 student  student         80 Nov 27 04:37 .drwxr-xr-x    1 root     root            60 Nov 26 02:58 ..-rw-------    1 student  student        357 Nov 27 04:37 .ash_historydrwxr-sr-x    2 student  student         40 Nov 27 04:37 docs__CQ_END_b9b24d6d__:0                 $  "
+      },
+      {
+        "label": "create notes",
+        "text": "__CQ_4780859a____CQ_END_4780859a__:0                 $ printf '\\n%s\\n' __CQ_ac1b6594__; ( busybox ls -la -- '/home/student/docs'; ) 2>&1; printf '\\n%s:%s\\n' __CQ_END_ac1b6594__ $?__CQ_ac1b6594__total 0drwxr-sr-x    2 student  student         60 Nov 27 04:54 .drwxr-sr-x    1 student  student         80 Nov 27 04:37 ..-rw-r--r--    1 student  student          0 Nov 27 04:54 notes.txt__CQ_END_ac1b6594__:0                 $ printf '\\n%s\\n' __CQ_3095dd92__; ( busybox ls -la -- '/home/student'; ) 2>&1; printf '\\n%s:%s\\n' __CQ_END_3095dd92__ $?__CQ_3095dd92__total 4drwxr-sr-x    1 student  student         80 Nov 27 04:37 .drwxr-xr-x    1 root     root            60 Nov 26 02:58 ..-rw-------    1 student  student        734 Nov 27 04:54 .ash_historydrwxr-sr-x    2 student  student         60 Nov 27 04:54 docs__CQ_END_3095dd92__:0                 $  "
+      },
+      {
+        "label": "save notes",
+        "text": "sybox cat -- \"$CQ_FILE\"; ) 2>&1; printf '\\n%s:%s\\n' __CQ_END_338288f7__ $?__CQ_338288f7____CQ_END_338288f7__:0                 $ printf '\\n%s\\n' __CQ_bd89cb77____CQ_bd89cb77__                 $ printf %s 'hello c2w> second line> ' > '/home/student/docs/notes.txt'                 $ printf '\\n%s:%s\\n' __CQ_END_bd89cb77__ $?__CQ_END_bd89cb77__:0                 $ printf '\\n%s\\n' __CQ_2ad3d7b3__; ( busybox ls -la -- '/home/student/docs'; ) 2>&1; printf '\\n%s:%s\\n' __CQ_END_2ad3d7b3__ $?__CQ_2ad3d7b3__total 4drwxr-sr-x    2 student  student         60 Nov 27 04:54 .drwxr-sr-x    1 student  student         80 Nov 27 04:37 ..-rw-r--r--    1 student  student         22 Nov 27 05:11 notes.txt__CQ_END_2ad3d7b3__:0                 $  "
+      },
+      {
+        "label": "terminal cat",
+        "text": "                 $ printf '\\n%s\\n' __CQ_2ad3d7b3__; ( busybox ls -la -- '/home/student/docs'; ) 2>&1; printf '\\n%s:%s\\n' __CQ_END_2ad3d7b3__ $?__CQ_2ad3d7b3__total 4drwxr-sr-x    2 student  student         60 Nov 27 04:54 .drwxr-sr-x    1 student  student         80 Nov 27 04:37 ..-rw-r--r--    1 student  student         22 Nov 27 05:11 notes.txt__CQ_END_2ad3d7b3__:0                 $ cat docs/notes.txthello c2wsecond line                 $ printf '\\n%s\\n' __CQ_50eb5847__; ( pwd -P && busybox ls -la -- .; ) 2>&1; printf '\\n%s:%s\\n' __CQ_END_50eb5847__ $?__CQ_50eb5847__/home/studenttotal 4drwxr-sr-x    1 student  student         80 Nov 27 04:37 .drwxr-xr-x    1 root     root            60 Nov 26 02:58 ..-rw-------    1 student  student       1400 Nov 27 05:28 .ash_historydrwxr-sr-x    2 student  student         60 Nov 27 04:54 docs__CQ_END_50eb5847__:0                 $  "
+      },
+      {
+        "label": "terminal cd",
+        "text": "second line                 $ printf '\\n%s\\n' __CQ_50eb5847__; ( pwd -P && busybox ls -la -- .; ) 2>&1; printf '\\n%s:%s\\n' __CQ_END_50eb5847__ $?__CQ_50eb5847__/home/studenttotal 4drwxr-sr-x    1 student  student         80 Nov 27 04:37 .drwxr-xr-x    1 root     root            60 Nov 26 02:58 ..-rw-------    1 student  student       1400 Nov 27 05:28 .ash_historydrwxr-sr-x    2 student  student         60 Nov 27 04:54 docs__CQ_END_50eb5847__:0                 $ cd /tmp                 $ printf '\\n%s\\n' __CQ_10bb0609__; ( pwd -P && busybox ls -la -- .; ) 2>&1; printf '\\n%s:%s\\n' __CQ_END_10bb0609__ $?__CQ_10bb0609__/tmptotal 0drwxrwxrwt    1 root     root            60 Nov 27 04:20 .drwxr-xr-x    1 root     root           100 Nov 26 03:03 ..-rw-r--r--    1 student  student          0 Nov 27 04:20 cq-stdin__CQ_END_10bb0609__:0                 $  "
+      },
+      {
+        "label": "terminal touch",
+        "text": "                 $ cd /tmp                 $ printf '\\n%s\\n' __CQ_10bb0609__; ( pwd -P && busybox ls -la -- .; ) 2>&1; printf '\\n%s:%s\\n' __CQ_END_10bb0609__ $?__CQ_10bb0609__/tmptotal 0drwxrwxrwt    1 root     root            60 Nov 27 04:20 .drwxr-xr-x    1 root     root           100 Nov 26 03:03 ..-rw-r--r--    1 student  student          0 Nov 27 04:20 cq-stdin__CQ_END_10bb0609__:0                 $ touch from-terminal.txt                 $ printf '\\n%s\\n' __CQ_2d4364ff__; ( pwd -P && busybox ls -la -- .; ) 2>&1; printf '\\n%s:%s\\n' __CQ_END_2d4364ff__ $?__CQ_2d4364ff__/tmptotal 0drwxrwxrwt    1 root     root            80 Nov 27 06:02 .drwxr-xr-x    1 root     root           100 Nov 26 03:03 ..-rw-r--r--    1 student  student          0 Nov 27 04:20 cq-stdin-rw-r--r--    1 student  student          0 Nov 27 06:02 from-terminal.txt__CQ_END_2d4364ff__:0                 $  "
+      }
+    ],
+    "duringSleep": "__CQ_23ceee82__total 4drwxr-sr-x    1 student  student         80 Nov 27 04:37 .drwxr-xr-x    1 root     root            60 Nov 26 02:58 ..-rw-------    1 student  student       3214 Nov 27 07:44 .ash_historydrwxr-sr-x    2 student  student         40 Nov 27 07:44 docs__CQ_END_23ceee82__:0                 $ printf '\\n%s\\n' __CQ_309d860a__; ( busybox rm -rf -- '/home/student/docs'; ) 2>&1; printf '\\n%s:%s\\n' __CQ_END_309d860a__ $?__CQ_309d860a____CQ_END_309d860a__:0                 $ printf '\\n%s\\n' __CQ_be2ba1e8__; ( busybox ls -la -- '/home/student'; ) 2>&1; printf '\\n%s:%s\\n' __CQ_END_be2ba1e8__ $?__CQ_be2ba1e8__total 4drwxr-sr-x    1 student  student         60 Nov 27 08:01 .drwxr-xr-x    1 root     root            60 Nov 26 02:58 ..-rw-------    1 student  student       3459 Nov 27 08:01 .ash_history__CQ_END_be2ba1e8__:0                 $  ",
+    "sleepBaseline": "__CQ_23ceee82__total 4drwxr-sr-x    1 student  student         80 Nov 27 04:37 .drwxr-xr-x    1 root     root            60 Nov 26 02:58 ..-rw-------    1 student  student       3214 Nov 27 07:44 .ash_historydrwxr-sr-x    2 student  student         40 Nov 27 07:44 docs__CQ_END_23ceee82__:0                 $ printf '\\n%s\\n' __CQ_309d860a__; ( busybox rm -rf -- '/home/student/docs'; ) 2>&1; printf '\\n%s:%s\\n' __CQ_END_309d860a__ $?__CQ_309d860a____CQ_END_309d860a__:0                 $ printf '\\n%s\\n' __CQ_be2ba1e8__; ( busybox ls -la -- '/home/student'; ) 2>&1; printf '\\n%s:%s\\n' __CQ_END_be2ba1e8__ $?__CQ_be2ba1e8__total 4drwxr-sr-x    1 student  student         60 Nov 27 08:01 .drwxr-xr-x    1 root     root            60 Nov 26 02:58 ..-rw-------    1 student  student       3459 Nov 27 08:01 .ash_history__CQ_END_be2ba1e8__:0                 $  ",
+    "refreshDisabled": true,
+    "finalTerminal": "__CQ_END_be2ba1e8__:0                 $ sleep 30^C                 $ printf '\\n%s\\n' __CQ_df9b41be__; ( pwd -P && busybox ls -la -- .; ) 2>&1; printf '\\n%s:%s\\n' __CQ_END_df9b41be__ $?__CQ_df9b41be__/home/studenttotal 4drwxr-sr-x    1 student  student         60 Nov 27 08:01 .drwxr-xr-x    1 root     root            60 Nov 26 02:58 ..-rw-------    1 student  student       3584 Nov 27 08:18 .ash_history__CQ_END_df9b41be__:0                 $ printf '\\n%s\\n' __CQ_078a8c81__; ( pwd -P && busybox ls -la -- .; ) 2>&1; printf '\\n%s:%s\\n' __CQ_END_078a8c81__ $?__CQ_078a8c81__/home/studenttotal 4drwxr-sr-x    1 student  student         60 Nov 27 08:01 .drwxr-xr-x    1 root     root            60 Nov 26 02:58 ..-rw-------    1 student  student       3700 Nov 27 08:35 .ash_history__CQ_END_078a8c81__:0                 $  ",
+    "runtimeRequests": 1,
+    "iconRequests": [
+      "/vendor/material-icon-theme/icons/folder-root-open.svg",
+      "/vendor/material-icon-theme/icons/file.svg",
+      "/vendor/material-icon-theme/icons/folder-docs-open.svg",
+      "/vendor/material-icon-theme/icons/document.svg",
+      "/vendor/material-icon-theme/icons/folder-docs.svg",
+      "/vendor/material-icon-theme/icons/document.svg",
+      "/vendor/material-icon-theme/icons/folder-docs.svg",
+      "/vendor/material-icon-theme/icons/folder-docs-open.svg",
+      "/vendor/material-icon-theme/icons/document.svg",
+      "/vendor/material-icon-theme/icons/folder-docs-open.svg",
+      "/vendor/material-icon-theme/icons/file.svg"
+    ],
+    "materialLoaded": true,
+    "pageErrors": [],
+    "fixedTerminalCols": true
+  },
+  "browser": "/opt/microsoft/msedge/msedge",
+  "at": "2026-11-27T04:25:39.453Z"
+}

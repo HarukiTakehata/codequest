@@ -10,6 +10,7 @@
 
 - 顶栏提供 Shell / C/C++ / Java / Python / JavaScript 环境选择器，切换后重启容器。
 - 顶栏显示当前镜像与「重启容器」「返回课程列表」。
+- 终端旁提供可折叠的 Web 树状文件管理器，使用 Material Icon Theme 本地 SVG 展示文件类型；目录按需展开，支持文本预览/编辑、新建、重命名与删除。
 - xterm.js 把完整键盘字节流（Tab、方向键、Ctrl+C、vi 控制序列）原样写入容器 stdin。
 - 容器 TTY 尺寸只在启动前测量一次：xterm 完成字体与布局适配后，把 `cols/rows` 写入容器初始化脚本的 `stty rows ... cols ...`，同时导出 `COLUMNS/LINES`；网格随后固定，确保 `stty size` 与终端元素一致。
 - 容器 stdout/stderr 字节流原样写回 xterm；不伪造提示符、不本地行编辑、不拦截命令。
@@ -46,10 +47,25 @@ const session = await openContainerSession({}, {
   wasmUrl: `/runtime/cq-dev-${environment}.wasm?env=${environment}&bytes=${compressedBytes}&v=${sha256.slice(0, 12)}&sha256=${sha256}`,
   requestId: environment,
 });
-session.stdio.stdin.getWriter() ← xterm.onData / onBinary 原始字节
-session.stdio.stdout/stderr     → xterm.write
+session.stdio.stdin.getWriter() ← InteractiveCommandBridge ← xterm.onData / onBinary 原始字节
+session.stdio.stdout/stderr     → InteractiveCommandBridge → xterm.write
 session.close(stdinWriter, { stdout, stderr }) → 退出 guest、取消 reader/writer
 ```
+
+## Web 树状文件管理器
+
+- `apps/web/src/components/ContainerFileManager.tsx` 只持有当前容器目录的缓存，所有读写经
+  `InteractiveCommandBridge` 回到同一个 c2w 会话；不创建第二个容器，也不维护虚拟文件系统。
+- 管理器触发目录查看、文本读取、新建、重命名、删除或保存时，向同一终端写入真实 shell 命令。
+  命令回显、stdout/stderr 全部原样显示在 xterm；只用命令前后的唯一标记读取结果与退出码。
+- 用户终端命令回到提示符后，文件管理器自动执行一条 `pwd -P && busybox ls -la -- .` 快照命令，
+  因此 `cd`、`touch`、`rm` 等操作会同步到树状视图。工具栏也可手动刷新或返回上级目录。
+- 结果标记使用 8 位短 ID，命令直接以子 shell 执行，不再输出长 UUID、`/bin/sh -c` 包装或额外状态变量。
+- 文件命令与键盘输入共用 writer 队列。只有唯一 shell 提示符出现时才执行；`vim`、`sleep` 等前台进程运行中会明确提示返回提示符，不把命令注入前台进程。
+- 不修改 `stty`、`PS1/PS2` 或终端回显，不过滤普通输出。文本预览上限为 256 KiB；写回使用可见的
+  `printf` 命令，路径与文本经 POSIX 单引号转义。首版不提供独立上传/下载，避免二进制/base64 大量占用 TTY。
+- Material Icon Theme 5.40.0（MIT）的 SVG 子集、来源 commit 和许可证位于
+  `apps/web/public/vendor/material-icon-theme/`；通用操作图标仍使用 `lucide-react`。
 
 ## 本地工件缓存
 
@@ -96,6 +112,9 @@ session.close(stdinWriter, { stdout, stderr }) → 退出 guest、取消 reader/
 - `node scripts/test-shell-container.mjs /tmp/opencode/cq-dev-shell.wasm /opt/microsoft/msedge/msedge`：真实浏览器验证预设文件、会话持久、重置、stdin、交互终端、stderr/非零退出、动态 goals、超时后恢复、后台输出隔离与 1 MiB 输出上限；三次会话共用一次工件请求。
 - `node scripts/test-c2w-environment.mjs <lang> /tmp/opencode/cq-dev-<lang>.wasm`：五种语言均通过 Edge 冒烟；Java 的 `javac/java` 步骤明显慢于 Shell 启动。
 - `node scripts/test-container-selector.mjs`：真实 Edge 验证五种选项全部启用、首次请求新 Shell 工件、切换 JavaScript 后请求对应工件并恢复提示符，且不请求 legacy 工件；同环境重启后服务端请求次数仍为 1。
+- `tests/frontend/container-files.test.ts`：路径转义、`ls -la` 解析、特殊文件名、Material 图标映射与文本预览上限。
+- `tests/frontend/interactive-command-bridge.test.ts` / `container-file-manager.test.ts`：提示符空闲判定、stdin 串行、光标查询回复优先级、全部输出透传、双向同步、单会话接入与重置代次。
+- `C2W_BROWSER=/opt/microsoft/msedge/msedge npm run test:container-files`：真实 Edge + c2w 验证管理器命令可见、终端 `cd/touch` 反向同步、文本写回、新建/重命名/删除、前台进程保护、本地 Material 图标及折叠侧栏不改变 TTY 尺寸；12/12 通过，结果见 `docs/container-file-manager-result.json`。
 - `apps/web` 直接固定 `@xterm/xterm@5.5.0`：避免 6.0.0 的 `requestMode` 被当前 Vite/esbuild 压缩成未定义变量。`C2W_BROWSER=/opt/microsoft/msedge/msedge npm run test:terminal-vim` 已在生产构建中验证 `stty size` 与 xterm 网格一致、DECRQM 响应、真实 vim 新建/插入/保存退出/读回，且无页面异常。
 - `node scripts/test-minimal-rootfs.mjs`：镜像内 shell/文件/文本/进程/loopback 5/5 通过。
 - `npm run typecheck` / `npm run build` 通过。

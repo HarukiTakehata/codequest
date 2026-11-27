@@ -36,6 +36,7 @@ const MAX_INJECTED_BYTES = 512 * 1024;
 const MAX_OUTPUT_BYTES = 1024 * 1024;
 const MAX_PROTOCOL_BUFFER_CHARS = 4 * 1024 * 1024;
 const CLOSE_GRACE_MS = 750;
+export const INTERACTIVE_SHELL_PROMPT = "\x1b[8m__CQ_SHELL_IDLE__\x1b[0m$ ";
 const encoder = new TextEncoder();
 
 function shellQuote(value: string): string {
@@ -209,7 +210,9 @@ export function buildInteractiveContainerCommand(
     // WASI 版 c2w 只能在此处设置一次 TTY 尺寸；启动后再变更 xterm 网格会与容器失配。
     `/bin/busybox stty rows ${rows} cols ${cols}`,
     `export COLUMNS=${cols} LINES=${rows}`,
-    ...(automated ? ["/bin/busybox stty -echo", "PS1=", "export PS1"] : []),
+    ...(automated
+      ? ["/bin/busybox stty -echo", "PS1=", "export PS1"]
+      : [`PS1=${shellQuote(INTERACTIVE_SHELL_PROMPT)}`, "PS2='> '", "export PS1 PS2"]),
     "exec /bin/sh",
   ].join("\n");
 }

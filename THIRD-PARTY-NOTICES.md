@@ -19,6 +19,11 @@
 - 校验和随工件附带：`apps/web/public/clang/asset-receipts.json`。
 - 完整声明见 `THIRD-PARTY-NOTICES-clang.md`。
 
+### Material Icon Theme：`apps/web/public/vendor/material-icon-theme/`
+
+- 版本 5.40.0，MIT；来源与固定 commit 见同目录 `SOURCE.json`，完整许可见 `LICENSE`。
+- 仅 vendored c2w 文件管理器使用的文件/文件夹 SVG 子集，不引入 VS Code 扩展运行时或远程图标服务。
+
 ## 依赖与参考（通过 npm 安装，不 vendored）
 
 | 组件 | 许可 | 用途 |

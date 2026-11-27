@@ -26,6 +26,7 @@
     "container:test": "node scripts/test-language-containers.mjs",
     "test:shell-container": "node scripts/test-shell-container.mjs",
     "test:container-selector": "node scripts/test-container-selector.mjs",
+    "test:container-files": "node scripts/test-container-file-manager.mjs",
     "test:terminal-vim": "node scripts/test-terminal-vim.mjs",
     "test:runtime-route": "node scripts/test-r2-runtime.mjs",
     "container:c2w": "node scripts/containers/build-c2w.mjs"

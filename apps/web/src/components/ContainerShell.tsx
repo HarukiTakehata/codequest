@@ -1,14 +1,16 @@
 import { useEffect, useRef, useState } from "react";
 import { Terminal } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
-import { ArrowLeft, RotateCcw, Terminal as TerminalIcon } from "lucide-react";
+import { ArrowLeft, FolderTree, PanelLeftClose, RotateCcw, Terminal as TerminalIcon } from "lucide-react";
 import { ContainerStartupProgress, type ContainerStartupProgressState } from "./ContainerStartupProgress";
 import { openContainerSession } from "@codequest/runtime-shell/src/container-runtime";
+import { InteractiveCommandBridge } from "@codequest/runtime-shell/src/interactive-command-bridge";
 import { DEFAULT_CONTAINER_ENVIRONMENTS, type ContainerEnvironment } from "../container-environments";
 import { useI18n } from "../i18n/I18nProvider";
 import { useTheme } from "../theme/ThemeProvider";
 import { terminalTheme } from "../terminal-theme";
 import { TerminalFrame } from "./TerminalFrame";
+import { ContainerFileManager } from "./ContainerFileManager";
 import "@xterm/xterm/css/xterm.css";
 
 interface Props { onBack: () => void }
@@ -25,12 +27,17 @@ export function ContainerShell({ onBack }: Props) {
   const stopRef = useRef<(() => void) | null>(null);
   const inputDisposablesRef = useRef<Array<{ dispose(): void }>>([]);
   const progressChannelRef = useRef<BroadcastChannel | null>(null);
+  const bridgeRef = useRef<InteractiveCommandBridge | null>(null);
   const sessionGeneration = useRef(0);
+  const [fileBridge, setFileBridge] = useState<InteractiveCommandBridge | null>(null);
+  const [shellReady, setShellReady] = useState(false);
+  const [shellIdle, setShellIdle] = useState(false);
+  const [terminalActivity, setTerminalActivity] = useState(0);
+  const [fileManagerOpen, setFileManagerOpen] = useState(true);
   const [progress, setProgress] = useState<ContainerStartupProgressState | null>(null);
   const [environments, setEnvironments] = useState<ContainerEnvironment[]>(DEFAULT_CONTAINER_ENVIRONMENTS);
   const [manifestReady, setManifestReady] = useState(false);
   const [environmentId, setEnvironmentId] = useState<ContainerEnvironment["id"]>("shell");
-  const encoder = new TextEncoder();
 
   useEffect(() => {
     void fetch("/container-environments.json")
@@ -48,6 +55,12 @@ export function ContainerShell({ onBack }: Props) {
     if (!term) return;
     const generation = ++sessionGeneration.current;
     stopRef.current?.();
+    bridgeRef.current?.close();
+    bridgeRef.current = null;
+    setFileBridge(null);
+    setShellReady(false);
+    setShellIdle(false);
+    setTerminalActivity(0);
     inputDisposablesRef.current = [];
     progressChannelRef.current?.close();
     progressChannelRef.current = null;
@@ -106,6 +119,11 @@ export function ContainerShell({ onBack }: Props) {
           if (startupTimer) clearTimeout(startupTimer);
           for (const disposable of inputDisposablesRef.current) disposable.dispose();
           inputDisposablesRef.current = [];
+          bridgeRef.current?.close();
+          bridgeRef.current = null;
+          setFileBridge(null);
+          setShellReady(false);
+          setShellIdle(false);
           setProgress(null);
           term.writeln(`\r\n\x1b[33m${tRef.current("terminal.exited", { code })}\x1b[0m`);
         },
@@ -125,11 +143,31 @@ export function ContainerShell({ onBack }: Props) {
     const stdin = session.stdio.stdin.getWriter();
     const stdout = session.stdio.stdout.getReader();
     const stderr = session.stdio.stderr.getReader();
+    const bridge = new InteractiveCommandBridge({
+      writer: stdin,
+      onTerminalOutput: (text) => { if (!stopped) term.write(text); },
+      onShellReady: () => {
+        if (stopped || generation !== sessionGeneration.current) return;
+        setShellReady(true);
+      },
+      onShellIdleChange: (idle) => {
+        if (stopped || generation !== sessionGeneration.current) return;
+        setShellIdle(idle);
+      },
+      onUserCommandComplete: () => {
+        if (stopped || generation !== sessionGeneration.current) return;
+        setTerminalActivity((current) => current + 1);
+      },
+    });
+    bridgeRef.current = bridge;
+    setFileBridge(bridge);
     stopRef.current = () => {
       stopped = true;
       if (startupTimer) clearTimeout(startupTimer);
       for (const disposable of inputDisposablesRef.current) disposable.dispose();
       inputDisposablesRef.current = [];
+      bridge.close();
+      if (bridgeRef.current === bridge) bridgeRef.current = null;
       session.close(stdin, { stdout, stderr });
     };
 
@@ -143,7 +181,9 @@ export function ContainerShell({ onBack }: Props) {
           if (startupTimer) clearTimeout(startupTimer);
           setProgress(null);
         }
-        term.write(streamDecoder.decode(value, { stream: true }));
+        const text = streamDecoder.decode(value, { stream: true });
+        if (name === "stdout") bridge.pushStdout(text);
+        else bridge.pushStderr(text);
       }
     };
     void pump(stdout, "stdout");
@@ -157,12 +197,12 @@ export function ContainerShell({ onBack }: Props) {
 
     // 真实终端：所有键盘字节（含 Tab、方向键、Ctrl-C、vi 控制序列）原样送入容器 stdin。
     inputDisposablesRef.current = [
-      term.onData((data) => { void stdin.write(encoder.encode(data)).catch(() => undefined); }),
+      term.onData((data) => { void bridge.sendInput(data).catch(() => undefined); }),
       term.onBinary((data) => {
         const binary = atob(data);
         const bytes = new Uint8Array(binary.length);
         for (let index = 0; index < binary.length; index++) bytes[index] = binary.charCodeAt(index);
-        void stdin.write(bytes).catch(() => undefined);
+        void bridge.sendInput(bytes).catch(() => undefined);
       }),
     ];
     term.focus();
@@ -208,6 +248,9 @@ export function ContainerShell({ onBack }: Props) {
       <div className="page-toolbar">
         <button className="button button-ghost" onClick={onBack}><ArrowLeft size={15} />{t("stage.back")}</button>
         <div className="toolbar-actions">
+          <button className="button button-ghost" onClick={() => setFileManagerOpen((current) => !current)} aria-label={fileManagerOpen ? t("files.hide") : t("files.show")} title={fileManagerOpen ? t("files.hide") : t("files.show")}>
+            {fileManagerOpen ? <PanelLeftClose size={15} /> : <FolderTree size={15} />}
+          </button>
           <label className="container-environment-select" htmlFor="container-environment">
             <span className="muted">{t("container.environment")}</span>
             <select id="container-environment" value={environmentId} onChange={(event) => {
@@ -230,7 +273,10 @@ export function ContainerShell({ onBack }: Props) {
         <p>{t("container.subtitle")}</p>
         <div className="terminal-meta"><span className="tag lang">{selectedEnvironment?.image ?? environmentId}</span><span>{selectedEnvironment?.name}</span></div>
       </section>
-      <TerminalFrame hostRef={host} title={t("container.title")} />
+      <div className={`container-workbench${fileManagerOpen ? " has-files" : ""}`}>
+        {fileManagerOpen && <ContainerFileManager bridge={fileBridge} ready={shellReady} idle={shellIdle} activityToken={terminalActivity} resetKey={`${sessionGeneration.current}:${environmentId}`} onClose={() => setFileManagerOpen(false)} />}
+        <TerminalFrame hostRef={host} title={t("container.title")} />
+      </div>
       {progress && <ContainerStartupProgress progress={progress} />}
     </div>
   );

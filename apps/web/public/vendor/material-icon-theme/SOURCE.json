@@ -1,0 +1,9 @@
+{
+  "name": "Material Icon Theme",
+  "version": "5.40.0",
+  "license": "MIT",
+  "source": "https://github.com/material-extensions/vscode-material-icon-theme",
+  "commit": "3bf5135d7cb7c41ffcd1c60c5f6afdb6c6e6cc41",
+  "package": "https://registry.npmmirror.com/material-icon-theme/-/material-icon-theme-5.40.0.tgz",
+  "subset": "Local file/folder SVGs used by the c2w file explorer. See LICENSE."
+}
