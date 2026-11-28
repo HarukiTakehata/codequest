@@ -58,6 +58,11 @@ npm run container:c2w -- all --no-build # 转换为浏览器 WASM
 - [HarukiTakehata/WebGAL](https://github.com/HarukiTakehata/WebGAL) ← OpenWebGAL/WebGAL（MPL-2.0）
 - [HarukiTakehata/WebGAL_Terre](https://github.com/HarukiTakehata/WebGAL_Terre) ← OpenWebGAL/WebGAL_Terre
 
+## 补充文档
+
+- [RPGJS 自造 API、部分世界判定与失败回滚（提案）](docs/补充设计-RPGJS自造API与回滚判题.md)（2026-11-28）
+- [美术资源 URL 清单（按许可三档排序）](docs/美术资源URL清单.md)（2026-11-28）
+
 ## 协作约定
 
 见 [AGENTS.md](AGENTS.md)。
