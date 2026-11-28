@@ -34,6 +34,7 @@ npm run build                             # 学习端 + 管理面板 + /admin �
 npm test                                  # 判题、运行时、后端、剧情与前端守卫
 npm run validate:course
 npm run test:admin                        # 管理面板 Chromium 交互验收；可用 CHROMIUM_PATH 指定浏览器
+npm run test:web                          # 学习端路由 Chromium 验收；可用 C2W_BROWSER/CHROMIUM_PATH 指定浏览器
 ```
 
 ### Container Shell 浏览器验收
@@ -72,11 +73,11 @@ ADMIN_SMOKE_ALLOW_WRITE=1 npm run smoke:admin
 
 ## 边界与红线
 
-1. **不修改第三方技能/上游仓库**：WebGAL / WebGAL_Terre / container2wasm 等上游的变更走各自 fork 仓库（HarukiTakehata/WebGAL、HarukiTakehata/WebGAL_Terre），主仓库只做依赖与集成。
-2. **剧本格式保持 WebGAL 兼容子集**：`scenes/*.txt` 的语法与扩展指令（code/term/token/hint）一旦定型，任何破坏性变更需先更新设计书并征得仓库所有者同意。
+1. **不修改第三方技能/上游仓库**：RPGJS / CanvasEngine / PixiJS / container2wasm 等上游统一直接依赖，不 fork、不 patch `node_modules`；适配层写在主仓库。
+2. **RPGJS 是唯一课程引擎**：WebGAL/Terre、`start.txt` 剧本兼容层、PC 客户端、Docker 服务器版和 VPS 部署均已废除；课程格式使用 TMX/TSX + 事件/数据库 + `artifact.json`。
 3. **判题器是纯 TS 纯函数**：不引入浏览器/Node 专属 API，保证前端与 Worker 侧（防作弊回放）复用同一实现。
-4. **用户代码只在 Worker/WASM 沙箱执行**：任何把用户代码放到主线程或服务端执行的改动直接拒绝。
-5. **提交标注**：Agent 产生的提交在 commit message 末尾附一行 `🤖 自动提交：Hermes Agent`。
+4. **用户代码只在浏览器 Worker/WASM 沙箱执行**：任何把学生代码放到主线程或 Cloudflare 服务端执行的改动直接拒绝。
+5. **部署边界只允许 Cloudflare 与用户浏览器**：不得引入安装客户端、独立服务器、远程编辑器 SaaS 或运行时第三方热链。
 6. 提交署名：Haruki Takehata <haruki-takehata@yang-qwq.top>。
 
 ## 测试与验收

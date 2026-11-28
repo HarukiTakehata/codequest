@@ -23,7 +23,9 @@
 
 | 组件 | 许可 | 用途 |
 |---|---|---|
-| WebGAL / WebGAL_Terre | MPL-2.0 | 剧情引擎参考（本仓库为自研兼容子集，未引入其代码） |
+| WebGAL / WebGAL_Terre | MPL-2.0 | 历史参考，v0.9 已废除；不再作为依赖或运行时 |
+| RPGJS v5（`@rpgjs/client@5.5.1`、`@rpgjs/server@5.4.1`、`@rpgjs/tiledmap@5.0.3`、`@rpgjs/script@5.3.0`、`@rpgjs/vite@5.0.6`） | MIT | 2D 游戏客户端/服务端、Tiled 地图、沙箱脚本与构建工具；通过 npm 固定版本安装，不 fork |
+| CanvasEngine / PixiJS | MIT | RPGJS v5 的客户端渲染、组件、纹理与精灵运行时 |
 | container2wasm | Apache-2.0 | shell 容器会话路线（M4 spike 使用其 `c2w` 工具，不改源码） |
 | Pyodide | MPL-2.0 | Python 运行时 |
 | Monaco Editor | MIT | 代码编辑器 |

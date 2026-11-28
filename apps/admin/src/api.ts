@@ -1,3 +1,5 @@
+import { getTranslator, type MessageKey, type TranslateFn, type TranslateVars } from "@codequest/i18n";
+
 export interface ApiErrorShape {
   code: string;
   message: string;
@@ -18,6 +20,44 @@ export class ApiError extends Error {
 
 let unauthorizedHandler: (() => void) | undefined;
 
+export class LocalizedError extends Error {
+  constructor(readonly messageKey: MessageKey, readonly vars?: TranslateVars) {
+    super(messageKey);
+    this.name = "LocalizedError";
+  }
+}
+
+const errorMessageKeys: Record<string, MessageKey> = {
+  INVALID_CREDENTIALS: "errors.invalidCredentials",
+  RATE_LIMITED: "errors.rateLimited",
+  USER_DISABLED: "errors.userDisabled",
+  CURRENT_PASSWORD_INCORRECT: "errors.currentPassword",
+  INVALID_ARGUMENT: "errors.invalidArgument",
+  UNAUTHENTICATED: "errors.unauthenticated",
+  FORBIDDEN: "errors.forbidden",
+  INVALID_PACK: "errors.invalidPack",
+  COURSE_NOT_FOUND: "errors.courseNotFound",
+  INVALID_LANG: "errors.invalidLang",
+  NETWORK_ERROR: "errors.network",
+  INTERNAL: "admin.errors.internal",
+  NOT_FOUND: "admin.errors.notFound",
+  ACCOUNT_NOT_FOUND: "admin.errors.accountNotFound",
+  INVALID_CSV: "admin.errors.invalidCsv",
+  USERNAME_TAKEN: "admin.errors.usernameTaken",
+  EMAIL_TAKEN: "admin.errors.emailTaken",
+  LAST_ACTIVE_ADMIN: "admin.errors.lastActiveAdmin",
+  LINK_EXPIRED: "admin.errors.linkExpired",
+  BATCH_NOT_PENDING: "admin.errors.batchNotPending",
+  CANNOT_RESET_OWN_PASSWORD: "admin.errors.cannotResetOwnPassword",
+  PASSWORD_CHANGE_REQUIRED: "admin.errors.passwordChangeRequired",
+};
+
+const statusMessageKeys: Record<number, MessageKey> = {
+  401: "errors.unauthenticated",
+  403: "errors.forbidden",
+  404: "admin.errors.notFound",
+};
+
 export function setUnauthorizedHandler(handler?: () => void) {
   unauthorizedHandler = handler;
 }
@@ -36,7 +76,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
       },
     });
   } catch {
-    throw new ApiError(0, "NETWORK_ERROR", "无法连接服务器，请检查网络后重试。");
+    throw new ApiError(0, "NETWORK_ERROR", "");
   }
 
   if (!response.ok) {
@@ -44,13 +84,14 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     try {
       body = await response.json() as { error?: Partial<ApiErrorShape> };
     } catch {
-      // 非 JSON 错误不记录响应内容，避免意外携带敏感数据。
+      // Non-JSON errors omit the response body to avoid leaking sensitive data.
     }
-    if (response.status === 401) unauthorizedHandler?.();
+    // A rejected current password is a form error, not an expired session.
+    if (response.status === 401 && body.error?.code !== "CURRENT_PASSWORD_INCORRECT") unauthorizedHandler?.();
     throw new ApiError(
       response.status,
       body.error?.code ?? "UNKNOWN",
-      body.error?.message ?? `请求失败（${response.status}）`,
+      body.error?.message ?? "",
       body.error?.request_id,
     );
   }
@@ -64,7 +105,8 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 }
 
 export type UserRole = "student" | "teacher" | "admin";
-export type AccountRole = "student" | "teacher";
+export type AccountRole = Exclude<UserRole, "admin">;
+export type ManagedAccountRole = UserRole;
 
 export interface AdminUser {
   id: string;
@@ -114,7 +156,7 @@ export interface AdminAccount {
   username: string;
   email: string | null;
   display_name: string | null;
-  role: AccountRole;
+  role: ManagedAccountRole;
   status: "active" | "disabled";
   must_change_password: boolean;
   created_at: string;
@@ -240,7 +282,7 @@ export const api = {
 
   accounts: (params: {
     query?: string;
-    role?: AccountRole;
+    role?: ManagedAccountRole;
     status?: "active" | "disabled";
     passwordState?: "required" | "ready";
     limit: number;
@@ -259,7 +301,7 @@ export const api = {
     username?: string;
     email?: string | null;
     display_name?: string;
-    role?: AccountRole;
+    role?: ManagedAccountRole;
     status?: "active" | "disabled";
   }) => request<{
     account: AdminAccount;
@@ -287,8 +329,16 @@ export const api = {
   ),
 };
 
-export function errorMessage(error: unknown): string {
-  return error instanceof Error && error.message ? error.message : "操作失败，请稍后重试。";
+export function errorMessage(error: unknown, t: TranslateFn = getTranslator("zh")): string {
+  if (error instanceof LocalizedError) return t(error.messageKey, error.vars);
+  if (error instanceof ApiError) {
+    const key = errorMessageKeys[error.code] ?? statusMessageKeys[error.status];
+    if (key) return t(key);
+    if (error.message) return error.message;
+  }
+  if (error instanceof TypeError) return t("errors.network");
+  if (error instanceof Error && error.message) return error.message;
+  return t("admin.errors.unknown");
 }
 
 export function requestIdOf(error: unknown): string | undefined {

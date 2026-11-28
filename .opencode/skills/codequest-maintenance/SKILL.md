@@ -46,7 +46,7 @@ ADMIN_SMOKE_ALLOW_WRITE=1 npm run smoke:admin
 ## 2. 学习端与语言运行时
 
 - `apps/web/src/main.tsx` 是 SPA 入口；`App.tsx` 调度初始化、登录、课程、自由模式与 Container Shell 视图。
-- 剧情使用 `apps/web/src/engine/` 的自研 WebGAL 兼容子集，不是主仓库内的 WebGAL fork。
+- v0.9 目标只使用 RPGJS：浏览器 `@rpgjs/client` + Cloudflare Worker/Durable Object；`apps/web/src/engine/` 的 WebGAL 兼容子集属于待删除历史代码。
 - `apps/web/src/runners.ts` 按语言懒加载 Worker；Shell 明确拒绝一次性模拟运行时，必须使用常驻容器会话。
 - JS：`packages/runtime-js/src/exec.ts` 在 Worker 中执行，捕获 console 与逐行 stdin，stdout 上限 1 MiB。
 - Python：`packages/runtime-pyodide/src/worker.ts` 以 ESM 动态导入本地 `/pyodide/pyodide.mjs`；**禁止 `importScripts`**，不依赖 CDN。
@@ -148,7 +148,7 @@ node scripts/test-c2w-environment.mjs shell /tmp/opencode/cq-dev-shell.wasm
 
 - 设计决策先改 `docs/编程学习系统设计书.md` 再动代码；实现状态见 `docs/实现说明.md`。
 - 不修改第三方技能或上游仓库；container2wasm 等上游变更走对应 fork，主仓库只做依赖与集成。
-- WebGAL/Terre 相关 fork 位于同账号的 `HarukiTakehata/WebGAL` 与 `HarukiTakehata/WebGAL_Terre`；当前主仓库剧情引擎是自研兼容子集。
+- WebGAL/Terre 与 PC/Docker 创作端已废除；当前部署边界只允许 Cloudflare 与用户浏览器，RPGJS 框架不 fork。
 - 判题/运行时改动必须附可复现的挑战、判题配置与预期结果。
-- 提交在 `dev` 分支；署名 `Haruki Takehata <haruki-takehata@yang-qwq.top>`；commit message 末尾加 `🤖 自动提交：Hermes Agent`。本机 gpg 签名超时可使用 `-c commit.gpgsign=false`。
+- 提交在 `dev` 分支；署名 `Haruki Takehata <haruki-takehata@yang-qwq.top>`；
 - `npm run db:reset` 只重置本地 D1，带 `--yes`，绝不用于远端。

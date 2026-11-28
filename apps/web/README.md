@@ -5,6 +5,7 @@ React 19 + Vite 构建的浏览器学习端 SPA。账号、课程包、进度与
 ## 已实现能力
 
 - 实例初始化、用户名或邮箱登录/登出、临时密码修改、课程列表与课程包拉取。
+- 显式 History API 页面路由：支持课程/自由模式/Container Shell 深链接、刷新恢复、浏览器前进/后退和登录后返回原目标页。
 - 自研 WebGAL 兼容剧本子集：对话、选项、变量与 `-when` 门控、背景/立绘演出、BGM 指令、标签跳转、代码/终端挑战、令牌门、提示与结束事件。
 - 课程挑战工作台：Monaco 编辑、stdin、运行、逐测试点判题、加权分、首个失败点 diff、过程 goals 与进度保存。
 - 五语言运行：JavaScript Worker、Pyodide、wasm-clang 在线编译、teavm-javac、container2wasm Shell 常驻容器。
@@ -19,7 +20,8 @@ React 19 + Vite 构建的浏览器学习端 SPA。账号、课程包、进度与
 | 路径 | 作用 |
 |---|---|
 | `src/main.tsx` | React 挂载、国际化/主题 Provider、Service Worker 注册 |
-| `src/App.tsx` | 初始化、登录、课程、剧情、自由模式与容器视图路由 |
+| `src/App.tsx` | 初始化/登录认证门禁、页面渲染、课程包与进度加载 |
+| `src/router.ts` | 学习端 History API 路由解析、深链接与前进/后退 |
 | `src/engine/parser.ts` / `executor.ts` | WebGAL 兼容子集解析与逐条剧情执行 |
 | `src/components/Stage.tsx` | 课程剧情舞台与挑战/令牌门调度 |
 | `src/components/Workbench.tsx` | 代码/Shell 脚本工作台、判题与 goals |
@@ -30,6 +32,22 @@ React 19 + Vite 构建的浏览器学习端 SPA。账号、课程包、进度与
 | `vite.config.ts` | 开发代理、跨源隔离头、ESM Worker 与 c2w 资产配置 |
 
 运行时包位于 `packages/runtime-*`；Container Shell 的 wasm 工件存放在 R2，经 `/runtime/cq-dev-<language>.wasm` 提供，不能放入 `public/`（Workers Assets 单文件限制）。
+
+## 页面路由
+
+| 路径 | 页面 | 说明 |
+|---|---|---|
+| `/` | 学习端入口 | 按初始化/登录状态替换到 `/setup`、`/login` 或 `/courses` |
+| `/setup` | 实例初始化 | 仅空实例使用 |
+| `/login` | 登录 | 未登录使用；受保护深链接登录后返回原目标页 |
+| `/password` | 首次登录强制改密 | 仅 `must_change_password=true` 的会话 |
+| `/courses` | 课程与实验场列表 | 需登录 |
+| `/courses/:courseId` | 课程剧情与挑战舞台 | 刷新时重新拉取课程包与进度 |
+| `/free` | 自由模式 | 需登录 |
+| `/container` | 独立 Container Shell | 需登录且功能开关允许 |
+| `*` | 学习端 404 | 已登录用户显示提示与返回课程页链接 |
+
+路由由 `src/router.ts` 的 History API 实现，不引入额外路由依赖。已知页面路径由 Worker 显式回退到学习端 `index.html`；个人资料继续使用弹窗，挑战 ID 到剧情指针映射稳定前不提供挑战级深链接。
 
 ## 本地开发
 
@@ -61,6 +79,7 @@ npm run build                     # 学习端 + 管理面板 + /admin 嵌入产�
 npm run typecheck                 # 后端 + 学习端 + 管理面板
 npm test                          # 判题、运行时、后端、剧情与前端守卫
 npm run validate:course           # 演示课程包校验
+C2W_BROWSER=/path/to/chromium npm run test:web # 学习端路由 Chromium 验收
 ```
 
 常用定向测试：

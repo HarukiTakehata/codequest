@@ -1,0 +1,5 @@
+export function move() {
+  game.player.move("up", 2);
+  $player.gold -= 5;
+  return $player.gold;
+}

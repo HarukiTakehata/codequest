@@ -36,11 +36,18 @@ describe("同源管理面板 /admin 路由", () => {
     const redirect = await call("/admin", fetcher);
     expect(redirect.status).toBe(302);
     expect(redirect.headers.get("location")).toBe("/admin/");
+    expect(redirect.headers.get("content-security-policy")).toContain("default-src 'self'");
+    expect(redirect.headers.get("strict-transport-security")).toBe("max-age=31536000");
 
     for (const path of ["/admin/", "/admin/overview", "/admin/accounts", "/admin/audit/"]) {
       const response = await call(path, fetcher);
       expect(response.status, path).toBe(200);
       expect(await response.text()).toContain('name="codequest-app" content="admin"');
+      expect(response.headers.get("cache-control")).toBe("no-cache");
+      expect(response.headers.get("content-security-policy")).toContain("frame-ancestors 'none'");
+      expect(response.headers.get("strict-transport-security")).toBe("max-age=31536000");
+      expect(response.headers.get("permissions-policy")).toBe("camera=(), microphone=(), geolocation=()");
+      expect(response.headers.get("cross-origin-opener-policy")).toBe("same-origin");
       expect(response.headers.get("x-frame-options")).toBe("DENY");
     }
   });
@@ -54,6 +61,8 @@ describe("同源管理面板 /admin 路由", () => {
     const script = await call("/admin/assets/app.js", fetcher);
     expect(script.status).toBe(200);
     expect(script.headers.get("content-type")).toContain("text/javascript");
+    expect(script.headers.get("content-security-policy")).toContain("default-src 'self'");
+    expect(script.headers.get("permissions-policy")).toBe("camera=(), microphone=(), geolocation=()");
     expect(await script.text()).toBe("console.log('admin')");
 
     const missing = await call("/admin/assets/missing.js", fetcher);

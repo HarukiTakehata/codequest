@@ -1,0 +1,27 @@
+{
+  "id": "j_script_move",
+  "kind": "script",
+  "init": { "seed": 7, "player": { "gold": 10 } },
+  "cases": [
+    {
+      "id": "move4",
+      "name": "向上移动四步并扣 gold",
+      "call": { "fn": "move" },
+      "expect": {
+        "effect:player.moveRoutes:args.0.0.up": 4,
+        "player.gold": 5,
+        "returns": 5,
+        "effectsInclude": ["player.moveRoutes", "gold"]
+      }
+    },
+    {
+      "id": "fresh-world",
+      "name": "第二个用例仍从 10 gold 开始",
+      "call": { "fn": "move" },
+      "expect": {
+        "effect:player.moveRoutes:args.0.0.up": 4,
+        "player.gold": 5
+      }
+    }
+  ]
+}

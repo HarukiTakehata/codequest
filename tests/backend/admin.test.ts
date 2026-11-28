@@ -30,7 +30,7 @@ interface AdminAccount {
   username: string;
   email: string | null;
   display_name: string | null;
-  role: "student" | "teacher";
+  role: UserRole;
   status: "active" | "disabled";
   must_change_password: boolean;
   created_at: string;
@@ -266,6 +266,7 @@ describe("M6.1 管理 API · 门禁与配置", () => {
     expect((await f.call("/api/v1/admin/check", undefined, teacher.cookie)).status).toBe(403);
     expect((await f.call("/api/v1/admin/audit", undefined, teacher.cookie)).status).toBe(403);
     expect((await f.call("/api/v1/admin/accounts?role=teacher", undefined, teacher.cookie)).status).toBe(403);
+    expect((await f.call("/api/v1/admin/accounts?role=admin", undefined, teacher.cookie)).status).toBe(403);
     const hidden = await json<{ accounts: AdminAccount[]; total: number }>(
       await f.call("/api/v1/admin/accounts?query=other-teacher", undefined, teacher.cookie),
     );
@@ -600,7 +601,7 @@ describe("M6.1 管理 API · 一次性下载与批次", () => {
 });
 
 describe("M6.1 管理 API · 学生账号", () => {
-  it("支持搜索、状态/密码状态筛选与分页，仅管理学生", async () => {
+  it("支持搜索、状态/密码状态筛选与分页，管理员可管理全部角色", async () => {
     const f = fixture();
     const admin = await setup(f);
     await issue(f, admin, [
@@ -615,11 +616,11 @@ describe("M6.1 管理 API · 学生账号", () => {
     }, aliceCookie)).status).toBe(200);
 
     const all = await json<{ accounts: AdminAccount[]; total: number }>(await f.call("/api/v1/admin/accounts", undefined, admin));
-    expect(all.total).toBe(3);
-    expect(all.accounts.map((account) => account.username).sort()).toEqual(["bob", "carol", "learner.one"]);
-    expect(all.accounts.map((account) => account.email).sort()).toEqual(["alice@example.test", "bob@example.test", "carol@example.test"]);
-    expect(all.accounts.every((account) => account.batch_id && account.batch_filename === "codequest-accounts.csv")).toBe(true);
-    expect(all.accounts.every((account) => account.role === "student")).toBe(true);
+    expect(all.total).toBe(4);
+    expect(all.accounts.map((account) => account.username).sort()).toEqual(["admin", "bob", "carol", "learner.one"]);
+    expect(all.accounts.map((account) => account.email).sort()).toEqual(["admin@example.test", "alice@example.test", "bob@example.test", "carol@example.test"]);
+    expect(all.accounts.filter((account) => account.role === "student").every((account) => account.batch_id && account.batch_filename === "codequest-accounts.csv")).toBe(true);
+    expect(all.accounts.map((account) => account.role).sort()).toEqual(["admin", "student", "student", "student"]);
     expect(all.accounts.every((account) => !("password_hash" in account) && !("auth_version" in account))).toBe(true);
 
     const search = await json<{ accounts: AdminAccount[]; total: number }>(
@@ -634,8 +635,9 @@ describe("M6.1 管理 API · 学生账号", () => {
     const ready = await json<{ accounts: AdminAccount[]; total: number }>(
       await f.call("/api/v1/admin/accounts?password_state=ready", undefined, admin),
     );
-    expect(ready.total).toBe(1);
-    expect(ready.accounts[0]?.must_change_password).toBe(false);
+    expect(ready.total).toBe(2);
+    expect(ready.accounts.find((account) => account.username === "learner.one")?.must_change_password).toBe(false);
+    expect(ready.accounts.find((account) => account.username === "admin")?.must_change_password).toBe(false);
     const required = await json<{ accounts: AdminAccount[]; total: number }>(
       await f.call("/api/v1/admin/accounts?password_state=required", undefined, admin),
     );
@@ -643,7 +645,7 @@ describe("M6.1 管理 API · 学生账号", () => {
     const page = await json<{ accounts: AdminAccount[]; total: number; limit: number; offset: number }>(
       await f.call("/api/v1/admin/accounts?limit=1&offset=1", undefined, admin),
     );
-    expect(page).toMatchObject({ total: 3, limit: 1, offset: 1 });
+    expect(page).toMatchObject({ total: 4, limit: 1, offset: 1 });
     expect(page.accounts).toHaveLength(1);
 
     const accounts = all.accounts;
@@ -697,9 +699,12 @@ describe("M6.1 管理 API · 学生账号", () => {
     expect((await f.call("/api/v1/auth/login", { identifier: "bob@example.test", password: "bob-password-123" })).status).toBe(200);
 
     const adminUser = f.db.sqlite.prepare("SELECT id FROM users WHERE role = 'admin'").get()!;
-    expect((await f.call(`/api/v1/admin/accounts/${adminUser.id}`, { status: "disabled" }, admin, "PATCH")).status).toBe(404);
+    const blockedDisable = await f.call(`/api/v1/admin/accounts/${adminUser.id}`, { status: "disabled" }, admin, "PATCH");
+    expect(blockedDisable.status).toBe(409);
+    expect(await json<{ error: { code: string } }>(blockedDisable)).toMatchObject({ error: { code: "LAST_ACTIVE_ADMIN" } });
     expect(f.db.sqlite.prepare("SELECT status FROM users WHERE id = ?").get(adminUser.id)?.status).toBe("active");
-    for (const query of ["limit=0", "limit=101", "offset=-1", "role=bogus", "role=admin", "status=bogus", "password_state=bogus"]) {
+    expect((await f.call("/api/v1/auth/me", undefined, admin)).status).toBe(200);
+    for (const query of ["limit=0", "limit=101", "offset=-1", "role=bogus", "status=bogus", "password_state=bogus"]) {
       expect((await f.call(`/api/v1/admin/accounts?${query}`, undefined, admin)).status).toBe(400);
     }
     const audited = f.db.sqlite.prepare("SELECT COUNT(*) AS n FROM admin_audit_events WHERE action = 'account_updated'").get();
@@ -797,15 +802,67 @@ describe("M6.1 管理 API · 学生账号", () => {
     expect(roleAudits.every((event) => event.target_id === account.id)).toBe(true);
 
     const adminUser = f.db.sqlite.prepare("SELECT id FROM users WHERE role = 'admin'").get()!;
-    expect((await f.call(`/api/v1/admin/accounts/${adminUser.id}`, { role: "teacher" }, admin, "PATCH")).status).toBe(404);
+    const blockedDemotion = await f.call(`/api/v1/admin/accounts/${adminUser.id}`, { role: "teacher" }, admin, "PATCH");
+    expect(blockedDemotion.status).toBe(409);
+    expect(await json<{ error: { code: string } }>(blockedDemotion)).toMatchObject({ error: { code: "LAST_ACTIVE_ADMIN" } });
     expect(f.db.sqlite.prepare("SELECT role FROM users WHERE id = ?").get(adminUser.id)?.role).toBe("admin");
+  });
+
+  it("管理员可按自己的用户名或邮箱搜索到管理员账号", async () => {
+    const f = fixture();
+    const admin = await setup(f);
+    await issue(f, admin, "alice,alice@example.test,Alice,alice-password-123");
+
+    for (const query of ["ADMIN", "admin@example.test", "ADMIN@EXAMPLE.TEST"]) {
+      const response = await f.call(`/api/v1/admin/accounts?query=${encodeURIComponent(query)}`, undefined, admin);
+      expect(response.status, query).toBe(200);
+      expect(await json<{ accounts: AdminAccount[]; total: number }>(response), query)
+        .toMatchObject({ total: 1, accounts: [{ username: "admin", email: "admin@example.test", role: "admin" }] });
+    }
+    const visible = await json<{ accounts: AdminAccount[]; total: number }>(
+      await f.call("/api/v1/admin/accounts", undefined, admin),
+    );
+    expect(visible.total).toBe(2);
+    expect(visible.accounts.map((account) => account.username).sort()).toEqual(["admin", "alice"]);
+  });
+
+  it("管理员可查看、调整并重置其他管理员账号", async () => {
+    const f = fixture();
+    const admin = await setup(f);
+    await issue(f, admin, "other-admin,other-admin@example.test,Other Admin,other-admin-password-123");
+    const target = (await json<{ accounts: AdminAccount[] }>(
+      await f.call("/api/v1/admin/accounts?role=student", undefined, admin),
+    )).accounts[0]!;
+
+    const promoted = await f.call(`/api/v1/admin/accounts/${target.id}`, { role: "admin" }, admin, "PATCH");
+    expect(promoted.status).toBe(200);
+    expect((await json<{ account: AdminAccount }>(promoted)).account.role).toBe("admin");
+
+    const admins = await json<{ accounts: AdminAccount[]; total: number }>(
+      await f.call("/api/v1/admin/accounts?role=admin", undefined, admin),
+    );
+    expect(admins.total).toBe(2);
+    expect(admins.accounts.map((account) => account.id).sort()).toEqual([target.id, f.db.sqlite.prepare("SELECT id FROM users WHERE username = 'admin'").get()!.id].sort());
+
+    const renamed = await f.call(`/api/v1/admin/accounts/${target.id}`, { display_name: "Other Admin Updated" }, admin, "PATCH");
+    expect(renamed.status).toBe(200);
+    expect((await f.call(`/api/v1/admin/accounts/${target.id}`, { status: "disabled" }, admin, "PATCH")).status).toBe(200);
+    expect((await f.call(`/api/v1/admin/accounts/${target.id}`, { status: "active" }, admin, "PATCH")).status).toBe(200);
+    const reset = await f.call(`/api/v1/admin/accounts/${target.id}/password-reset`, undefined, admin, "POST");
+    expect(reset.status).toBe(200);
+    const credentials = await json<{ temporary_password: string; must_change_password: boolean }>(reset);
+    const login = await f.call("/api/v1/auth/login", { identifier: "other-admin@example.test", password: credentials.temporary_password });
+    expect(login.status).toBe(200);
+    expect(await json<{ user: { role: UserRole }; must_change_password: boolean }>(login))
+      .toMatchObject({ user: { role: "admin" }, must_change_password: true });
+    expect((await f.call(`/api/v1/admin/accounts/${target.id}`, { role: "teacher" }, admin, "PATCH")).status).toBe(200);
   });
 
   it("重置临时密码撤销全部会话且不改变启停状态，也不泄露到审计", async () => {
     const f = fixture();
     const admin = await setup(f);
     const issued = await issue(f, admin, "alice,alice@example.test,Alice,alice-password-123");
-    const account = (await json<{ accounts: AdminAccount[] }>(await f.call("/api/v1/admin/accounts", undefined, admin))).accounts[0]!;
+    const account = (await json<{ accounts: AdminAccount[] }>(await f.call("/api/v1/admin/accounts?role=student", undefined, admin))).accounts[0]!;
     const firstLogin = await f.call("/api/v1/auth/login", { identifier: "alice@example.test", password: "alice-password-123" });
     const secondLogin = await f.call("/api/v1/auth/login", { identifier: "alice@example.test", password: "alice-password-123" });
     const firstCookie = firstLogin.headers.get("set-cookie")!.split(";")[0]!;
@@ -854,14 +911,54 @@ describe("M6.1 管理 API · 学生账号", () => {
       identifier: "alice@example.test", password: secondCredentials.temporary_password,
     })).status).toBe(403);
 
-    const adminUser = f.db.sqlite.prepare("SELECT id FROM users WHERE role = 'admin'").get()!;
-    expect((await f.call(`/api/v1/admin/accounts/${adminUser.id}/password-reset`, undefined, admin, "POST")).status).toBe(404);
-    expect((await f.call("/api/v1/auth/me", undefined, admin)).status).toBe(200);
     const auditText = JSON.stringify(f.db.sqlite.prepare("SELECT * FROM admin_audit_events").all());
     expect(auditText).not.toContain(credentials.temporary_password);
     expect(auditText).not.toContain(secondCredentials.temporary_password);
     expect(count(f, "admin_audit_events")).toBe(4); // 发号、停用、两次重置；撤销链接不影响账号。
     expect(issued.batch.status).toBe("pending");
+  });
+
+  it("管理员不能通过成员管理重置自己的密码，且凭据、会话与审计均不变", async () => {
+    const f = fixture();
+    const admin = await setup(f);
+    const adminUser = f.db.sqlite.prepare("SELECT id FROM users WHERE role = 'admin'").get()!;
+    const adminBefore = f.db.sqlite.prepare(`
+      SELECT password_hash, password_updated_at, must_change_password, auth_version, status
+      FROM users WHERE id = ?
+    `).get(adminUser.id);
+    const sessionsBefore = f.db.sqlite.prepare("SELECT * FROM user_sessions WHERE user_id = ? ORDER BY id")
+      .all(adminUser.id);
+    const auditsBefore = f.db.sqlite.prepare("SELECT * FROM admin_audit_events ORDER BY id").all();
+    expect(sessionsBefore).not.toHaveLength(0);
+
+    const response = await f.call(`/api/v1/admin/accounts/${adminUser.id}/password-reset`, undefined, admin, "POST");
+    expect(response.status).toBe(403);
+    const error = await json<{ error: { code: string }; temporary_password?: string }>(response);
+    expect(error).toMatchObject({ error: { code: "CANNOT_RESET_OWN_PASSWORD" } });
+    expect(error).not.toHaveProperty("temporary_password");
+    expect(f.db.sqlite.prepare(`
+      SELECT password_hash, password_updated_at, must_change_password, auth_version, status
+      FROM users WHERE id = ?
+    `).get(adminUser.id)).toEqual(adminBefore);
+    expect(f.db.sqlite.prepare("SELECT * FROM user_sessions WHERE user_id = ? ORDER BY id")
+      .all(adminUser.id)).toEqual(sessionsBefore);
+    expect(f.db.sqlite.prepare("SELECT * FROM admin_audit_events ORDER BY id").all()).toEqual(auditsBefore);
+    expect((await f.call("/api/v1/auth/me", undefined, admin)).status).toBe(200);
+  });
+
+  it("管理员仍可通过 /api/v1/auth/password 自主改密", async () => {
+    const f = fixture();
+    const admin = await setup(f);
+    const changed = await f.call("/api/v1/auth/password", {
+      current_password: "admin-password-123", new_password: "admin-ready-password-123",
+    }, admin);
+    expect(changed.status).toBe(200);
+    expect(await json(changed)).toEqual({ ok: true, reauth_required: true });
+    expect((await f.call("/api/v1/auth/me", undefined, admin)).status).toBe(401);
+    const relogin = await f.call("/api/v1/auth/login", {
+      identifier: "admin@example.test", password: "admin-ready-password-123",
+    });
+    expect(relogin.status).toBe(200);
   });
 });
 
@@ -870,7 +967,7 @@ describe("M6.1 管理 API · 审计与课程", () => {
     const f = fixture();
     const admin = await setup(f);
     const issued = await issue(f, admin, "alice,alice@example.test,Alice,specified-password-123");
-    const account = (await json<{ accounts: AdminAccount[] }>(await f.call("/api/v1/admin/accounts", undefined, admin))).accounts[0]!;
+    const account = (await json<{ accounts: AdminAccount[] }>(await f.call("/api/v1/admin/accounts?role=student", undefined, admin))).accounts[0]!;
     await f.call(`/api/v1/admin/accounts/${account.id}`, { display_name: "Alice Audited" }, admin, "PATCH");
     const reset = await f.call(`/api/v1/admin/accounts/${account.id}/password-reset`, undefined, admin, "POST");
     const temporaryPassword = (await json<{ temporary_password: string }>(reset)).temporary_password;

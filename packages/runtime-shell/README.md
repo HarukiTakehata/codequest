@@ -15,7 +15,7 @@
 - `openContainerSession(files?, options?)`：返回 `stdio.stdin/stdout/stderr` 字节流，供 xterm 直接连接。
 - `openAutomatedContainerSession(files?, options?)`：返回可重复调用的 `run(request)` 与 `close()`。
 - `buildContainerInitialization` / `buildContainerRunBlock`：容器内初始化与脚本执行协议。
-- `buildContainerGoalCheckScript` / `parseContainerGoalChecks`：在同一会话中探测 `file-exists` 与 `command-stdout`。
+- `buildContainerGoalCheckScript` / `parseContainerGoalChecks`：在同一会话中执行 shell 探针，并解析 stdout/stderr/exitCode 来求值 `file-exists` 与 `command-stdout`；不提供结构化容器状态 API。
 - `fetchContainerRuntime`：运行时工件缓存、完整性与解压入口。
 
 ## 会话行为

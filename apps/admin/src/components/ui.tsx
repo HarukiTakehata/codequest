@@ -7,7 +7,9 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { ArrowLeft, ArrowRight, CircleAlert, Inbox, LoaderCircle, RefreshCw, SearchX, X } from "lucide-react";
+import { useI18n } from "@codequest/i18n";
 import { errorMessage, requestIdOf } from "../api";
+import { formatNumber } from "../lib/format";
 
 export function Button({
   children,
@@ -67,31 +69,34 @@ export function Badge({ children, tone = "neutral" }: {
   return <span className={`badge badge-${tone}`}>{children}</span>;
 }
 
-export function LoadingState({ label = "正在加载数据…" }: { label?: string }) {
+export function LoadingState({ label }: { label?: string }) {
+  const { t } = useI18n();
+  const loadingLabel = label ?? t("common.loading");
   return (
-    <div className="loading-state" role="status" aria-label={label}>
+    <div className="loading-state" role="status" aria-label={loadingLabel}>
       <div className="skeleton skeleton-title" />
       <div className="skeleton skeleton-line" />
       <div className="skeleton skeleton-line short" />
       <div className="skeleton skeleton-block" />
-      <span className="sr-only">{label}</span>
+      <span className="sr-only">{loadingLabel}</span>
     </div>
   );
 }
 
-export function ErrorState({ error, onRetry, title = "暂时无法加载" }: {
+export function ErrorState({ error, onRetry, title }: {
   error: unknown;
   onRetry?: () => void;
   title?: string;
 }) {
+  const { t } = useI18n();
   const requestId = requestIdOf(error);
   return (
     <div className="state-panel state-error" role="alert">
       <span className="state-icon"><CircleAlert size={24} aria-hidden="true" /></span>
-      <h2>{title}</h2>
-      <p>{errorMessage(error)}</p>
-      {requestId && <p className="request-id">请求编号：{requestId}</p>}
-      {onRetry && <Button variant="outline" onClick={onRetry}><RefreshCw size={16} />重试</Button>}
+      <h2>{title ?? t("common.loadFailed")}</h2>
+      <p>{errorMessage(error, t)}</p>
+      {requestId && <p className="request-id">{t("common.requestId", { id: requestId })}</p>}
+      {onRetry && <Button variant="outline" onClick={onRetry}><RefreshCw size={16} />{t("common.retry")}</Button>}
     </div>
   );
 }
@@ -112,23 +117,26 @@ export function EmptyState({ title, description, action }: {
 }
 
 export function SearchEmptyState({ onReset }: { onReset: () => void }) {
+  const { t } = useI18n();
   return (
     <div className="state-panel compact-state">
       <span className="state-icon"><SearchX size={22} aria-hidden="true" /></span>
-      <h2>没有找到匹配的成员</h2>
-      <p>试试其他关键词，或清除搜索与筛选条件。</p>
-      <Button variant="outline" size="small" onClick={onReset}>清除条件</Button>
+      <h2>{t("admin.ui.searchEmptyTitle")}</h2>
+      <p>{t("admin.ui.searchEmptyDescription")}</p>
+      <Button variant="outline" size="small" onClick={onReset}>{t("admin.ui.resetFilters")}</Button>
     </div>
   );
 }
 
-export function Pagination({ total, limit, offset, onChange, label = "列表分页" }: {
+export function Pagination({ total, limit, offset, onChange, label }: {
   total: number;
   limit: number;
   offset: number;
   onChange: (offset: number) => void;
   label?: string;
 }) {
+  const { t, locale } = useI18n();
+  const paginationLabel = label ?? t("common.pagination.label");
   const pages = Math.max(1, Math.ceil(total / limit));
   const current = Math.min(pages, Math.floor(offset / limit) + 1);
   const numbers = new Set<number>([1, pages, current - 1, current, current + 1]);
@@ -142,11 +150,11 @@ export function Pagination({ total, limit, offset, onChange, label = "列表分�
   const end = Math.min(offset + limit, total);
 
   return (
-    <nav className="pagination" aria-label={label}>
-      <p>共 <strong>{total}</strong> 条{total > 0 && <span> · {start}–{end}</span>}</p>
+    <nav className="pagination" aria-label={paginationLabel}>
+      <p>{t("common.pagination.totalPrefix")}<strong>{formatNumber(total, locale)}</strong>{t("common.pagination.totalSuffix")}{total > 0 && <span>{t("common.pagination.range", { start: formatNumber(start, locale), end: formatNumber(end, locale) })}</span>}</p>
       <div className="pagination-controls">
-        <Button variant="outline" size="small" disabled={current <= 1} onClick={() => onChange((current - 2) * limit)} aria-label="上一页">
-          <ArrowLeft size={15} />上一页
+        <Button variant="outline" size="small" disabled={current <= 1} onClick={() => onChange((current - 2) * limit)} aria-label={t("common.previousPage")}>
+          <ArrowLeft size={15} />{t("common.previousPage")}
         </Button>
         <div className="page-numbers">
           {entries.map((entry, index) => entry === "ellipsis" ? (
@@ -157,13 +165,13 @@ export function Pagination({ total, limit, offset, onChange, label = "列表分�
               type="button"
               className={entry === current ? "is-current" : ""}
               aria-current={entry === current ? "page" : undefined}
-              aria-label={`第 ${entry} 页`}
+              aria-label={t("common.page", { page: formatNumber(entry, locale) })}
               onClick={() => onChange((entry - 1) * limit)}
-            >{entry}</button>
+            >{formatNumber(entry, locale)}</button>
           ))}
         </div>
-        <Button variant="outline" size="small" disabled={current >= pages || total === 0} onClick={() => onChange(current * limit)} aria-label="下一页">
-          下一页<ArrowRight size={15} />
+        <Button variant="outline" size="small" disabled={current >= pages || total === 0} onClick={() => onChange(current * limit)} aria-label={t("common.nextPage")}>
+          {t("common.nextPage")}<ArrowRight size={15} />
         </Button>
       </div>
     </nav>
@@ -183,6 +191,7 @@ export function Modal({ open, onClose, title, description, children, footer, var
 }) {
   const titleId = useId();
   const descriptionId = useId();
+  const { t } = useI18n();
   const dialogRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef(onClose);
   closeRef.current = onClose;
@@ -243,7 +252,7 @@ export function Modal({ open, onClose, title, description, children, footer, var
             <h2 id={titleId}>{title}</h2>
             {description && <p id={descriptionId}>{description}</p>}
           </div>
-          <button type="button" className="icon-button" onClick={onClose} aria-label="关闭对话框"><X size={20} /></button>
+          <button type="button" className="icon-button" onClick={onClose} aria-label={t("common.closeDialog")}><X size={20} /></button>
         </header>
         <div className="modal-body">{children}</div>
         {footer && <footer className="modal-footer">{footer}</footer>}
@@ -253,7 +262,9 @@ export function Modal({ open, onClose, title, description, children, footer, var
   );
 }
 
-export function InlineFieldError({ children }: { children?: string | null }) {
-  if (!children) return null;
-  return <p className="field-error" role="alert">{children}</p>;
+export function InlineFieldError({ children }: { children?: unknown }) {
+  const { t } = useI18n();
+  if (children == null || children === "") return null;
+  const message = typeof children === "string" ? children : errorMessage(children, t);
+  return <p className="field-error" role="alert">{message}</p>;
 }

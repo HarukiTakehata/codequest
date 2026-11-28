@@ -40,14 +40,54 @@ const challengeSchema = z.object({
   hint: z.string().optional(),
 });
 
-const judgeSchema = z.object({
-  id: z.string(),
+const scriptExpectationSchema = z.record(z.string(), z.unknown()).refine(
+  (expect) => Object.keys(expect).length > 0,
+  "脚本测试点至少需要一个 expect 断言",
+);
+
+const scriptCaseSchema = z.object({
+  id: z.string().min(1),
+  name: z.string().min(1),
+  weight: z.number().finite().positive().optional(),
+  call: z.object({ fn: z.string().min(1), args: z.array(z.unknown()).optional() }).optional(),
+  fire: z.string().min(1).optional(),
+  emit: z.object({ signal: z.string().min(1), payload: z.unknown().optional() }).optional(),
+  world: z.record(z.string(), z.unknown()).optional(),
+  dice: z.array(z.number()).optional(),
+  choices: z.array(z.number().int()).optional(),
+  expect: scriptExpectationSchema,
+}).strict().refine(
+  (test) => [test.call, test.fire, test.emit].filter((run) => run !== undefined).length === 1,
+  "脚本测试点必须且只能指定 call/fire/emit 之一",
+);
+
+const oiJudgeSchema = z.object({
+  id: z.string().min(1),
+  kind: z.literal("oi").default("oi"),
   cases: z.array(z.object({
     id: z.string(), name: z.string(), stdin: z.string(), expected: z.string(),
     mode: z.enum(["exact", "eol", "ws", "regex-line", "numeric-tol"]).optional(),
     weight: z.number().optional(), tolerance: z.number().optional(),
-  })),
+  })).min(1),
 });
+
+const scriptJudgeSchema = z.object({
+  id: z.string().min(1),
+  kind: z.literal("script"),
+  init: z.record(z.string(), z.unknown()).default({}),
+  catalog: z.record(z.string(), z.array(z.string())).optional(),
+  requiredExports: z.array(z.string().min(1)).optional(),
+  limits: z.object({
+    steps: z.number().int().positive(),
+    iterations: z.number().int().positive(),
+    maxString: z.number().int().positive().optional(),
+    maxList: z.number().int().positive().optional(),
+    depth: z.number().int().positive().optional(),
+  }).strict().optional(),
+  cases: z.array(scriptCaseSchema).min(1),
+}).strict();
+
+const judgeSchema = z.discriminatedUnion("kind", [oiJudgeSchema, scriptJudgeSchema]);
 
 export type CoursePack = Record<string, string>;
 
@@ -84,10 +124,14 @@ export function validatePack(pack: CoursePack): ValidatedPack {
     }
   }
   const judges: ValidatedPack["judges"] = [];
+  const judgeIds = new Set<string>();
   for (const [path, content] of Object.entries(pack)) {
     if (!/^judges\/[^/]+\.json$/.test(path)) continue;
     try {
-      judges.push(judgeSchema.parse(JSON.parse(content)));
+      const judge = judgeSchema.parse(JSON.parse(content));
+      if (judgeIds.has(judge.id)) throw new Error(`判题 id 重复: ${judge.id}`);
+      judgeIds.add(judge.id);
+      judges.push(judge);
     } catch (error) {
       throw new HttpError(400, "INVALID_PACK", `${path} 校验失败: ${String(error)}`);
     }
@@ -95,6 +139,10 @@ export function validatePack(pack: CoursePack): ValidatedPack {
   for (const challenge of challenges) {
     if (challenge.judge && !judges.some((j) => j.id === challenge.judge)) {
       throw new HttpError(400, "INVALID_PACK", `${challenge.id} 引用的判题配置不存在: ${challenge.judge}`);
+    }
+    const judge = judges.find((candidate) => candidate.id === challenge.judge);
+    if (judge?.kind === "script" && (challenge.lang !== "javascript" || challenge.mode !== "code")) {
+      throw new HttpError(400, "INVALID_PACK", `${challenge.id} 的脚本判题要求 lang=javascript、mode=code`);
     }
   }
   return { meta, challenges, judges };

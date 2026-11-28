@@ -3,8 +3,10 @@ import { ArrowLeft, ChevronDown } from "lucide-react";
 import { parseScript } from "../engine/parser";
 import { StoryEngine, type StoryEvent } from "../engine/executor";
 import { api, type CoursePack, type Progress } from "../api";
-import type { Challenge, JudgeConfig } from "../types";
+import type { Challenge, CourseJudgeConfig, ScriptJudgeConfig } from "../types";
+import type { JudgeScriptInput, ScriptJudgeCase, ScriptRunSpec } from "@codequest/rpgjs-script";
 import { Workbench } from "./Workbench";
+import { ScriptWorkbench } from "./ScriptWorkbench";
 import { TerminalWorkbench } from "./TerminalWorkbench";
 import { useI18n } from "../i18n/I18nProvider";
 import type { MessageKey } from "../i18n";
@@ -19,7 +21,35 @@ interface Props {
 interface ActiveChallenge {
   event: Extract<StoryEvent, { type: "code" | "term" }>;
   challenge: Challenge;
-  judge: JudgeConfig | null;
+  judge: CourseJudgeConfig | null;
+}
+
+function scriptRunSpec(test: ScriptJudgeCase | undefined, judge: ScriptJudgeConfig): ScriptRunSpec {
+  if (!test) return {};
+  const world = { ...(test.world ?? {}) };
+  if (test.dice !== undefined) world.dice = test.dice;
+  if (test.choices !== undefined) world.choices = test.choices;
+  return {
+    call: test.call,
+    event: test.event,
+    fire: test.fire,
+    emit: test.emit,
+    ...(Object.keys(world).length > 0 ? { world } : {}),
+    limits: test.limits ?? judge.limits,
+    signals: test.signals ?? judge.signals,
+  };
+}
+
+function scriptJudgeOptions(judge: ScriptJudgeConfig): Omit<JudgeScriptInput, "source" | "cases"> {
+  return {
+    id: judge.id,
+    kind: "script",
+    init: judge.init,
+    catalog: judge.catalog,
+    requiredExports: judge.requiredExports,
+    limits: judge.limits,
+    signals: judge.signals,
+  };
 }
 
 export function Stage({ courseId, pack, progress, onBack }: Props) {
@@ -73,9 +103,9 @@ export function Stage({ courseId, pack, progress, onBack }: Props) {
   const openChallenge = (challengeEvent: Extract<StoryEvent, { type: "code" | "term" }>) => {
     const challenge = JSON.parse(pack[`challenges/${challengeEvent.challengeId}.json`] ?? "null") as Challenge | null;
     if (!challenge) { advance(); return; }
-    let judge: JudgeConfig | null = null;
+    let judge: CourseJudgeConfig | null = null;
     if (challenge.judge) {
-      judge = JSON.parse(pack[`judges/${challenge.judge}.json`] ?? "null") as JudgeConfig | null;
+      judge = JSON.parse(pack[`judges/${challenge.judge}.json`] ?? "null") as CourseJudgeConfig | null;
     }
     setActive({ event: challengeEvent, challenge, judge });
   };
@@ -163,6 +193,15 @@ export function Stage({ courseId, pack, progress, onBack }: Props) {
       {active && (
         active.event.type === "term" && active.challenge.termMode === "explore" ? (
           <TerminalWorkbench challenge={active.challenge} onClose={() => { setActive(null); advance(); }} />
+        ) : active.judge?.kind === "script" ? (
+          <ScriptWorkbench
+            challenge={active.challenge}
+            run={scriptRunSpec(active.judge.cases[0], active.judge)}
+            tests={active.judge.cases}
+            judgeOptions={scriptJudgeOptions(active.judge)}
+            onPass={onPass}
+            onClose={() => { setActive(null); advance(); }}
+          />
         ) : (
           <Workbench
             challenge={active.challenge}

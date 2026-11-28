@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState } from "react";
-import { Check, ChevronDown, Globe2 } from "lucide-react";
+import { Check, Globe2 } from "lucide-react";
 import { LOCALES, LOCALE_LABELS, type Locale } from "../i18n";
 import { useI18n } from "../i18n/I18nProvider";
 
@@ -55,9 +55,7 @@ export function LanguageSwitcher() {
         aria-controls={open ? menuId : undefined}
         data-testid="language-switcher"
       >
-        <Globe2 size={18} aria-hidden="true" />
-        <span className="language-current">{LOCALE_LABELS[locale]}</span>
-        <ChevronDown size={14} className={open ? "is-open" : ""} aria-hidden="true" />
+        <Globe2 size={19} aria-hidden="true" />
       </button>
       {open && (
         <div className="dropdown-menu" id={menuId} role="menu" aria-label={t("nav.language")} onKeyDown={(event) => {

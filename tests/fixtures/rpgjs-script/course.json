@@ -1,0 +1,7 @@
+{
+  "id": "rpgjs-script-fixture",
+  "slug": "rpgjs-script-fixture",
+  "title": "RPGJS 脚本判题 fixture",
+  "langs": ["javascript"],
+  "entry": "start.txt"
+}

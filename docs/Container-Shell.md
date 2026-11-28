@@ -6,7 +6,7 @@
 
 ## 形态
 
-课程列表页「⚡ 自由模式」旁的独立入口 **Container Shell**，点击进入全屏终端：
+课程列表页「⚡ 自由模式」旁的独立入口 **Container Shell**（`/container`）进入全屏终端，支持刷新深链接与浏览器前进/后退；未登录访问会先到 `/login`，登录成功后返回 `/container`：
 
 - 顶栏提供 Shell / C/C++ / Java / Python / JavaScript 环境选择器，切换后重启容器。
 - 顶栏显示当前镜像与「重启容器」「返回课程列表」。
@@ -80,7 +80,7 @@ session.close(stdinWriter, { stdout, stderr }) → 退出 guest、取消 reader/
 - 课程内 Shell 探索终端与脚本判题统一使用 container2wasm 常驻容器；进入即启动、运行复用、手动重置、退出时发送 Ctrl-C/exit 并取消流。
 - `@webvirt/c2w@0.1.0` 没有暴露 VM/ring Worker 的 `terminate()`；当前关闭路径有 750ms 优雅退出上限并释放锁定的 reader/writer，但强制 Worker 回收仍需上游 fork 配合，不能把浏览器 GC 当作销毁保证。
 - 当前工件是纯 WASI 构建，没有 Emscripten 的 `__syscall_ioctl` 钩子，c2w 也不提供 PTY resize 通道；因此容器尺寸无法在会话运行中随浏览器窗口改变。窗口缩放后网格保持不变，宿主允许滚动查看；需要新尺寸时重启容器。
-- 自动 Shell 判题已串行化，每次运行使用独立临时目录、FIFO 流式 1 MiB 上限、独立超时标记；`file-exists` / `command-stdout` 在同一会话中真实探测。探索关仍按课程设计使用关闭终端后的令牌门。
+- 自动 Shell 判题已串行化，每次运行使用独立临时目录、FIFO 流式 1 MiB 上限、独立超时标记。c2w 只有 Shell/终端接口，因此 `file-exists` / `command-stdout` 必须编译为 shell 探针并判定 stdout/stderr/exitCode，不读取结构化容器状态。探索关仍使用关闭终端后的令牌门。
 
 ## 验证
 

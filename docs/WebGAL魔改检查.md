@@ -1,4 +1,6 @@
-# WebGAL 魔改检查（2026-11-25）
+# WebGAL 魔改检查（2026-11-25，历史归档）
+
+> **已废除（2026-11-28）**：CodeQuest v0.9 彻底移除 WebGAL/Terre 路线，不再保留 fork、指令扩展或剧本兼容要求。本文仅保存历史核查记录。
 
 > 检查对象：`/home/yang/文档/WebGAL`（remote `git@github.com:HarukiTakehata/WebGAL.git`），
 > commit `5c8056ca feat(codequest): add code/term/token/hint script commands`。

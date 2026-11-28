@@ -1,23 +1,39 @@
+import type { MessageKey, Locale, TranslateFn } from "@codequest/i18n";
+import type { IssuedBatch } from "../api";
 import { isPlaceholderDisplayName } from "./display-name";
 
-const dateFormatter = new Intl.DateTimeFormat("zh-CN", {
-  year: "numeric",
-  month: "2-digit",
-  day: "2-digit",
-  hour: "2-digit",
-  minute: "2-digit",
-  hour12: false,
-});
+const dateFormatters: Record<Locale, Intl.DateTimeFormat> = {
+  zh: new Intl.DateTimeFormat("zh-CN", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }),
+  en: new Intl.DateTimeFormat("en", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }),
+};
 
-export function formatDate(value: string | null | undefined): string {
+export function formatDate(value: string | null | undefined, locale: Locale = "zh"): string {
   if (!value) return "—";
   const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? "—" : dateFormatter.format(date);
+  return Number.isNaN(date.getTime()) ? "—" : dateFormatters[locale].format(date);
 }
 
-export function formatBytes(value: number | undefined): string {
+export function formatNumber(value: number, locale: Locale = "zh", options?: Intl.NumberFormatOptions): string {
+  return new Intl.NumberFormat(locale === "zh" ? "zh-CN" : "en", options).format(value);
+}
+
+export function formatBytes(value: number | undefined, locale: Locale = "zh"): string {
   if (value === undefined || !Number.isFinite(value)) return "—";
-  if (value < 1024) return `${value} B`;
+  if (value < 1024) return `${formatNumber(value, locale)} B`;
   const units = ["KB", "MB", "GB"];
   let size = value / 1024;
   let index = 0;
@@ -25,7 +41,11 @@ export function formatBytes(value: number | undefined): string {
     size /= 1024;
     index += 1;
   }
-  return `${size >= 10 ? size.toFixed(1) : size.toFixed(2)} ${units[index]}`;
+  const formatted = formatNumber(size, locale, {
+    minimumFractionDigits: size >= 10 ? 1 : 2,
+    maximumFractionDigits: size >= 10 ? 1 : 2,
+  });
+  return `${formatted} ${units[index]}`;
 }
 
 export function safeExternalUrl(value: string | null): string | null {
@@ -45,45 +65,56 @@ export function initials(name: string | null | undefined, username?: string | nu
   return source ? source.slice(0, 1).toUpperCase() : "?";
 }
 
-export const batchStatusLabels = {
-  pending: "待领取",
-  downloaded: "已领取",
-  expired: "已过期",
-  revoked: "已撤销",
-} as const;
-
-export const auditTargetLabels: Record<string, string> = {
-  user: "成员账号",
-  account: "成员账号",
-  course: "课程",
-  batch: "发号批次",
-  issued_batch: "发号批次",
-  system: "系统",
+const batchStatusMessageKeys: Record<IssuedBatch["status"], MessageKey> = {
+  pending: "admin.batchStatus.pending",
+  downloaded: "admin.batchStatus.downloaded",
+  expired: "admin.batchStatus.expired",
+  revoked: "admin.batchStatus.revoked",
 };
 
-export const auditActionLabels: Record<string, string> = {
-  "batch.created": "创建发号批次",
-  "batch.revoked": "撤销发号批次",
-  "batch.downloaded": "领取发放表",
-  "batch_created": "创建发号批次",
-  "batch_revoked": "撤销发号批次",
-  "batch_downloaded": "领取发放表",
-  "account.created": "批量创建账号",
-  "account.updated": "更新账号",
-  "account.enabled": "启用账号",
-  "account.disabled": "停用账号",
-  "account.password_reset": "重置临时密码",
-  "account_password_reset": "重置临时密码",
-  "account_updated": "更新账号",
-  "course.created": "上传课程",
-  "course.updated": "更新课程",
-  "course.enabled": "上架课程",
-  "course.disabled": "下架课程",
-  "course_created": "上传课程",
-  "course_updated": "更新课程",
-  "course_published": "发布课程",
+const auditTargetMessageKeys: Record<string, MessageKey> = {
+  user: "admin.audit.target.user",
+  account: "admin.audit.target.user",
+  course: "admin.audit.target.course",
+  batch: "admin.audit.target.batch",
+  issued_batch: "admin.audit.target.batch",
+  system: "admin.audit.target.system",
 };
 
-export function auditActionLabel(action: string): string {
-  return auditActionLabels[action] ?? action.replaceAll("_", " ");
+const auditActionMessageKeys: Record<string, MessageKey> = {
+  "batch.created": "admin.audit.action.batchCreated",
+  "batch.revoked": "admin.audit.action.batchRevoked",
+  "batch.downloaded": "admin.audit.action.batchDownloaded",
+  "batch_created": "admin.audit.action.batchCreated",
+  "batch_revoked": "admin.audit.action.batchRevoked",
+  "batch_downloaded": "admin.audit.action.batchDownloaded",
+  "account.created": "admin.audit.action.accountCreated",
+  "account.updated": "admin.audit.action.accountUpdated",
+  "account.enabled": "admin.audit.action.accountEnabled",
+  "account.disabled": "admin.audit.action.accountDisabled",
+  "account.password_reset": "admin.audit.action.passwordReset",
+  "account_password_reset": "admin.audit.action.passwordReset",
+  "password_reset": "admin.audit.action.passwordReset",
+  "account_updated": "admin.audit.action.accountUpdated",
+  "course.created": "admin.audit.action.courseCreated",
+  "course.updated": "admin.audit.action.courseUpdated",
+  "course.enabled": "admin.audit.action.courseEnabled",
+  "course.disabled": "admin.audit.action.courseDisabled",
+  "course_created": "admin.audit.action.courseCreated",
+  "course_updated": "admin.audit.action.courseUpdated",
+  "course_published": "admin.audit.action.coursePublished",
+};
+
+export function batchStatusLabel(status: IssuedBatch["status"], t: TranslateFn): string {
+  return t(batchStatusMessageKeys[status]);
+}
+
+export function auditTargetLabel(targetType: string, t: TranslateFn): string {
+  const key = auditTargetMessageKeys[targetType];
+  return key ? t(key) : targetType;
+}
+
+export function auditActionLabel(action: string, t: TranslateFn): string {
+  const key = auditActionMessageKeys[action];
+  return key ? t(key) : action.replaceAll("_", " ");
 }

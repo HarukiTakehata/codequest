@@ -40,7 +40,7 @@ const verdict = await judge(
 - 文件与命令：`file-exists`、`command-stdout`。
 - 测试点：`testcase`，可指定测试点 id 或全部/任一通过。
 
-Shell 运行时在同一容器会话中探测文件与命令，并通过 `runtimeGoalResults` 回传；该结果优先于初始 `files` 快照。goals 用于过程引导，是否阻断提交由挑战的 `requireAllGoals` 决定。
+Shell 运行时在同一容器会话中执行 shell 探针，并通过 `runtimeGoalResults` 回传 stdout/stderr/exitCode；该结果优先于初始 `files` 快照。c2w 只有 Shell/终端接口，因此这些 goals 不是独立世界状态判题。最终判题仍走 stdio 轨；RPGJS 世界状态判题在另一条并行轨道中运行。goals 用于过程引导，是否阻断提交由挑战的 `requireAllGoals` 决定。
 
 ## 测试
 

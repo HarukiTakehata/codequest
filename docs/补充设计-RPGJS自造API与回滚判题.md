@@ -1,8 +1,7 @@
-# 补充设计：RPGJS 自造 API、部分世界判定与失败回滚（提案）
+# 补充设计：RPGJS 自造 API、部分世界判定与失败回滚（提案 → 部分实现）
 
-> 日期：2026-11-28｜状态：**提案，未实现**｜关联：设计书 §4.2.2（学生场景脚本）、§5.3（判题器）、§4.4（素材与编辑器工作流）
-> 证据：RPGJS v5 源码 tarball（2026-11-26 拉取，2026-11-28 复核）、参考会话 `@session:default/2768c75dabf0`、可运行 spike `/home/hermeswebui/.hermes/cache/scratch/rpgjs-rollback-judge.spike.mts`（scratch 临时文件，非仓库产物）。
-> 本文只记录设计与证据；未改动引擎依赖、未引入运行时依赖。
+> 日期：2026-11-28｜状态：**部分实现**｜关联：设计书 §4.2.2（学生场景脚本）、§5.3（判题器）、§4.4（素材与编辑器工作流）
+> 2026-11-28 落地：`packages/rpgjs-script` 已固定依赖 `@rpgjs/script@5.3.0`，实现课程 API、core 薄封装、fresh-world 判题、attempt ledger 与 Worker；`ScriptWorkbench` 与 `oi | script` judge schema 已接入。真实 RPGJS 游戏世界的“影子试跑后提交”与 ledger 持久化仍未实现。
 
 ## 1. 背景与范围
 
@@ -16,7 +15,7 @@
 ## 2. 与 c2w 交互模型的差异（对照，不展开）
 
 | | c2w / shell 轨 | RPGJS 轨（本文） |
-|---|---|---|
+| --- | --- | --- |
 | 编辑器产物 | shell 脚本文本 | `export function` 脚本 / AST |
 | 控制对象 | 文件、进程、命令输出（OS 层） | 地图事件、GUI、玩家状态（语义层） |
 | 通道 | stdin/stdout 字节流 + 随机 marker 协议 | `compileProgram` / `simulate` / `runTests` + 信号 + `$map.*` |
@@ -72,6 +71,7 @@ move: (w, [way, times]) => {
 - `describeApi(api)` 已确认生成 `move(way: string, times: number)` 声明，可直接喂给 Monaco 的 extra lib。
 
 **两个坑**：
+
 1. `checkScript` / `runTests` 写死原生描述，不能直接校验 `game.*`；编辑器校验与判题必须用自建薄封装（core 层 API + 同一份 `ApiDescription`/`ApiImpl`）。
 2. `SimWorld` 中 `moveRoutes` 只**记录效果**，不改 `player.x/y`；部分状态判定要断言 `effects` 里的 `player.moveRoutes` 参数（方向、步数），不是 `player.x/y`。真实游戏桥接才会改坐标。
 
@@ -80,7 +80,7 @@ move: (w, [way, times]) => {
 ### 4.1 可行性分层
 
 | 层 | 是否可行 | 依据 |
-|---|---|---|
+| --- | --- | --- |
 | 模拟判定（`simulate` / 自建 wrapper） | **可行且现成** | `execute()` 每次调用 `new SimWorld(init)`；失败尝试的世界直接丢弃；`runTests` 每个用例也重建世界（实测第一个用例扣 5 gold，第二个仍从 10 开始） |
 | 运行中途断点回滚 | 需自建 | `snapshot()` 只读，无 restore；`WorldInit` 也不完整（脚本自建事件的 `made` 集合、事件计数器、已消耗骰子队列、effects 历史都不在快照里） |
 | 真实游戏运行时回滚 | **不可原生实现** | `ScriptService` 直接写 RpgPlayer，没有事务；只能「影子试跑通过后再提交」，或写显式逆操作（反方向 + 同一步数），后者脆弱不推荐 |
@@ -126,3 +126,14 @@ FRESH_WORLD_PER_TEST first gold:5, second gold:5
 2. 再上 `game.*` 自定义句柄：编辑器声明、宿主实现、判题实现三处共用同一 `ApiDescription`；`missingImplementations` 进 CI。
 3. 提交层实现「影子试跑 + ledger + 仅提交通过结果」；禁止对用户可见世界做直接 undo。
 4. 验收标准：同一 `init` 下，失败 attempt 的 effects/state 不泄漏到下一次；非法 `way`/`times` 编译期或宿主期被拒；`game.player.move("up", 4)` 产生 `player.moveRoutes` 效果且参数可断言；`describeApi` 含自定义声明；`missingImplementations` 为空。
+
+## 6. 实现状态（2026-11-28）
+
+| 项 | 状态 | 落点 / 证据 |
+| --- | --- | --- |
+| 课程 API 与声明同源 | 已完成 | `packages/rpgjs-script/src/api.ts`、`editor.ts`；flat/nested parity 均为空 |
+| core 薄封装与无头判题 | 已完成 | `judge.ts`；`call/fire/emit`、部分 state、effects 与 `effect:<name>:<path>` |
+| fresh-world 失败重放 | 已完成 | 每个 case/attempt 新建 `SimWorld`；SUBTLE_BAD fixture 已验证无泄漏 |
+| Worker 与编辑器工作台 | 已完成 | `client.ts`/`worker.ts`；`ScriptWorkbench` 只经 Worker 检查/运行/判题，Stage 按 `judge.kind` 分流 |
+| attempt ledger | 部分完成 | 已在内存结果中记录 `initHash/scriptHash/effects/partialState/verdict`；尚未持久化或接后端申诉 |
+| 真实游戏影子试跑与提交 | 未完成 | 需 Cloudflare RPGJS Worker/Durable Object 与浏览器客户端房间；不得对可见世界直接 undo |

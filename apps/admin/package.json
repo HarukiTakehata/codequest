@@ -11,6 +11,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@codequest/i18n": "*",
     "lucide-react": "^1.80.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"

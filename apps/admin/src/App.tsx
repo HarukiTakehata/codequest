@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowLeft, Braces, LogOut } from "lucide-react";
+import { useI18n, type MessageKey } from "@codequest/i18n";
 import { api, errorMessage, setUnauthorizedHandler, type AdminConfig, type AdminUser } from "./api";
 import { useAsyncData } from "./hooks/useAsyncData";
 import { useAdminRoute } from "./lib/router";
@@ -16,7 +17,17 @@ import { AuditPage } from "./pages/AuditPage";
 
 type AuthView = "loading" | "login" | "password" | "forbidden" | "error" | "ready";
 
+const routeTitleKeys: Record<string, MessageKey> = {
+  overview: "admin.nav.overview",
+  batches: "admin.nav.batches",
+  accounts: "admin.nav.accounts",
+  courses: "admin.nav.courses",
+  audit: "admin.nav.audit",
+  notfound: "admin.nav.notfound",
+};
+
 export default function App() {
+  const { t } = useI18n();
   const toast = useToast();
   const { route, navigate } = useAdminRoute();
   const routeRef = useRef(route);
@@ -68,7 +79,7 @@ export default function App() {
               if (setupUrl.protocol !== "http:" && setupUrl.protocol !== "https:") throw new Error("invalid setup URL");
               window.location.assign(setupUrl.href);
             } catch {
-              setAuthError(new Error("初始化地址配置无效，请检查 LEARNER_URL。"));
+              setAuthError(new Error(t("admin.auth.invalidSetupUrl")));
               setAuthView("error");
             }
             return;
@@ -85,7 +96,7 @@ export default function App() {
         setAuthView("error");
       }
     }
-  }, [acceptUser]);
+  }, [acceptUser, t]);
 
   useEffect(() => { void checkSession(); }, [checkSession]);
 
@@ -104,15 +115,21 @@ export default function App() {
       authRequest.current += 1;
       setUser(null);
       setAuthView("login");
-      setAuthNotice("登录状态已失效，请重新登录。一次性凭证页面已关闭。");
+      setAuthNotice(t("admin.auth.sessionExpired"));
     });
     return () => setUnauthorizedHandler(undefined);
-  }, [authView]);
+  }, [authView, t]);
 
   useEffect(() => {
-    const titles = { overview: "概览", batches: "批量发号", accounts: "成员账号", courses: "课程管理", audit: "审计记录", notfound: "页面未找到" };
-    document.title = `${titles[route]} · CodeQuest 管理面板`;
-  }, [route]);
+    const title = `${t(routeTitleKeys[route] ?? "admin.nav.overview")} · ${t("admin.app.title")}`;
+    const updateDocument = () => {
+      document.title = title;
+      document.querySelector<HTMLMetaElement>('meta[name="description"]')?.setAttribute("content", t("admin.app.description"));
+    };
+    updateDocument();
+    const frame = window.requestAnimationFrame(updateDocument);
+    return () => window.cancelAnimationFrame(frame);
+  }, [route, t]);
 
   const config = useAsyncData<AdminConfig>(() => api.config(), [user?.id], authView === "ready");
 
@@ -124,11 +141,11 @@ export default function App() {
       authRequest.current += 1;
       setUser(null);
       setAuthView("login");
-      setAuthNotice("已安全退出管理面板。");
+      setAuthNotice(t("admin.auth.loggedOut"));
       navigate("overview", true);
-      toast("已退出登录", "info");
+      toast(t("nav.signOut"), "info");
     } catch (reason) {
-      toast(`退出失败：${errorMessage(reason)}`, "error");
+      toast(t("admin.auth.logoutFailed", { message: errorMessage(reason, t) }), "error");
     } finally {
       setLoggingOut(false);
     }
@@ -138,15 +155,15 @@ export default function App() {
     setProfileOpen(false);
     setUser(null);
     setAuthView("login");
-    setAuthNotice("密码已更新，请使用新密码重新登录。");
+    setAuthNotice(t("admin.auth.passwordChanged"));
     navigate("overview", true);
   };
 
   if (authView === "loading") {
-    return <main className="connecting-page" role="status"><span className="brand-mark"><Braces size={25} /></span><span className="loading-orbit" /><h1>正在连接 CodeQuest</h1><p>确认用户会话与实例状态…</p></main>;
+    return <main className="connecting-page" role="status"><span className="brand-mark"><Braces size={25} /></span><span className="loading-orbit" /><h1>{t("app.connecting")}</h1><p>{t("admin.auth.checkingSession")}</p></main>;
   }
   if (authView === "error") return <AuthErrorPage error={authError} onRetry={() => void checkSession()} />;
-  if (authView === "login") return <><LoginPage onAuthenticated={acceptUser} />{authNotice && <div className="auth-notice" role="status"><span>{authNotice}</span><button type="button" onClick={() => setAuthNotice(null)} aria-label="关闭提示">×</button></div>}</>;
+  if (authView === "login") return <><LoginPage onAuthenticated={acceptUser} />{authNotice && <div className="auth-notice" role="status"><span>{authNotice}</span><button type="button" onClick={() => setAuthNotice(null)} aria-label={t("common.close")}>×</button></div>}</>;
   if (authView === "password" && user) return <ChangePasswordPage user={user} onDone={passwordChanged} />;
   if (authView === "forbidden" && user) return <ForbiddenPage user={user} onLogout={() => void logout()} loggingOut={loggingOut} />;
   if (authView !== "ready" || !user) return null;
@@ -170,18 +187,19 @@ export default function App() {
           user={user}
           onClose={() => setProfileOpen(false)}
           onUpdated={(nextUser) => setUser(nextUser)}
+          onPasswordChanged={passwordChanged}
         />
       )}
-      <a className="skip-link" href="#main-content">跳到主要内容</a>
+      <a className="skip-link" href="#main-content">{t("admin.auth.skipToContent")}</a>
       {shellRoute === "overview" && <OverviewPage role={user.role} config={config.data} configLoading={config.loading} configError={config.error} onReloadConfig={config.reload} navigate={navigate} />}
       {shellRoute === "batches" && <BatchesPage role={user.role} ttlHours={config.data?.download_link_ttl_hours ?? 24} />}
-      {shellRoute === "accounts" && <AccountsPage role={user.role} />}
+      {shellRoute === "accounts" && <AccountsPage role={user.role} currentUserId={user.id} />}
       {shellRoute === "courses" && <CoursesPage />}
       {shellRoute === "audit" && <AuditPage />}
       {shellRoute === "notfound" && (
         <section className="not-found panel" role="alert">
-          <p className="eyebrow">404 · NOT FOUND</p><h1>这个页面不存在</h1><p>链接可能已变更，或地址输入有误。</p>
-          <div><Button onClick={() => navigate("overview")}><ArrowLeft size={16} />返回概览</Button><Button variant="ghost" onClick={() => void logout()}><LogOut size={16} />退出登录</Button></div>
+          <p className="eyebrow">{t("admin.auth.notFoundEyebrow")}</p><h1>{t("admin.auth.notFoundTitle")}</h1><p>{t("admin.auth.notFoundDescription")}</p>
+          <div><Button onClick={() => navigate("overview")}><ArrowLeft size={16} />{t("admin.nav.overview")}</Button><Button variant="ghost" onClick={() => void logout()}><LogOut size={16} />{t("nav.signOut")}</Button></div>
         </section>
       )}
     </AdminShell>

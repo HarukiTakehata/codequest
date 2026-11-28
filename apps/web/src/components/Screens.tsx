@@ -6,6 +6,7 @@ import {
 import { api, type CourseInfo, type User } from "../api";
 import { displayNameOf } from "../display-name";
 import { CONTAINER_SHELL_ENABLED } from "../features";
+import { coursePath, LEARNER_PATHS } from "../router";
 import { useI18n } from "../i18n/I18nProvider";
 import type { MessageKey } from "../i18n";
 import { errorMessageKey, localizeError } from "../i18n/errors";
@@ -219,6 +220,12 @@ interface CourseProps {
   onContainer: () => void;
 }
 
+function followRoute(event: React.MouseEvent<HTMLAnchorElement>, follow: () => void) {
+  if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+  event.preventDefault();
+  follow();
+}
+
 export function CourseList({ user, onOpen, onFree, onContainer }: CourseProps) {
   const { t } = useI18n();
   const [courses, setCourses] = useState<CourseInfo[]>([]);
@@ -250,17 +257,17 @@ export function CourseList({ user, onOpen, onFree, onContainer }: CourseProps) {
           <div><span className="section-kicker">{t("courses.playgroundKicker")}</span><h2 id="mode-heading">{t("courses.playground")}</h2></div>
         </div>
         <div className="mode-entries">
-          <button className="mode-card mode-card-primary" onClick={onFree}>
+          <a className="mode-card mode-card-primary" href={LEARNER_PATHS.free} onClick={(event) => followRoute(event, onFree)}>
             <span className="mode-icon"><Zap size={23} aria-hidden="true" /></span>
             <span className="mode-copy"><strong>{t("courses.freeMode")}</strong><span>{t("courses.freeDescription")}</span></span>
             <ArrowUpRight className="mode-arrow" size={20} aria-hidden="true" />
-          </button>
+          </a>
           {CONTAINER_SHELL_ENABLED && (
-            <button className="mode-card mode-card-terminal" onClick={onContainer}>
+            <a className="mode-card mode-card-terminal" href={LEARNER_PATHS.container} onClick={(event) => followRoute(event, onContainer)}>
               <span className="mode-icon"><Terminal size={23} aria-hidden="true" /></span>
               <span className="mode-copy"><strong>{t("courses.containerShell")}</strong><span>{t("courses.containerDescription")}</span></span>
               <ArrowUpRight className="mode-arrow" size={20} aria-hidden="true" />
-            </button>
+            </a>
           )}
         </div>
       </section>
@@ -273,7 +280,7 @@ export function CourseList({ user, onOpen, onFree, onContainer }: CourseProps) {
         {error && <p className="form-message is-error" role="alert">{t("courses.loadFailed")}</p>}
         <div className="cards">
           {courses.map((course) => (
-            <button key={course.id} className="course-card" onClick={() => onOpen(course)}>
+            <a key={course.id} className="course-card" href={coursePath(course.id)} onClick={(event) => followRoute(event, () => onOpen(course))}>
               <div className="course-card-top"><span className="course-symbol"><Braces size={21} aria-hidden="true" /></span><ArrowUpRight size={18} aria-hidden="true" /></div>
               <span className="tag lang">{DIFFICULTY_KEYS[course.difficulty] ? t(DIFFICULTY_KEYS[course.difficulty]) : course.difficulty}</span>
               <h3>{course.title}</h3>
@@ -282,7 +289,7 @@ export function CourseList({ user, onOpen, onFree, onContainer }: CourseProps) {
                 <span title={course.langs.map((lang) => LANGUAGE_LABELS[lang] ?? lang).join(" · ")}><Layers3 size={14} aria-hidden="true" />{t("courses.languageCount", { count: course.langs.length })}</span>
                 <small>v{course.version}</small>
               </div>
-            </button>
+            </a>
           ))}
         </div>
         {!error && courses.length === 0 && <div className="empty-state"><BookOpen size={28} aria-hidden="true" /><p>{t("courses.empty")}</p></div>}

@@ -1,7 +1,7 @@
 # 美术资源 URL 清单（来自参考会话，按许可三档排序）
 
 > 来源会话：`@session:default/2768c75dabf0`（2026-11-27 核查）；URL 复核：2026-11-28。
-> 排序：**开源/可商用 > 需教育许可 > 不可用/仅参考**。本文只登记来源与 URL，**不下载、不入库素材**；实际入库前按设计书 §4.4.1 / §4.4 的许可登记流程二次核验。
+> 排序：**开源/可商用 > 需教育许可 > 不可用/仅参考**。本文只登记候选来源与 URL；实际入库前仍须按设计书 §4.4.1 / §4.4 的许可登记流程二次核验。
 > 可达性图例：✅ 200；⚠️ 反爬/网络受限（会话内 `web_extract` 曾成功读取）；🔴 当前 404/失效。直连 `curl` 对 GitHub 偶发 000，不能据此判死链。
 
 ## 1. 第一档：开源 / 可商用（可直接入课程包，义务仅署名或无）
@@ -9,10 +9,9 @@
 | 资源 | 详细 URL | 许可 / 义务 | 用途与处置 |
 |---|---|---|---|
 | RPGJS 引擎（v5） | 仓库 https://github.com/RSamaium/RPG-JS ；v5 分支 https://github.com/RSamaium/RPG-JS/tree/v5 ；许可 https://github.com/RSamaium/RPG-JS/blob/v5/LICENSE | MIT，无额外义务 | 引擎与官方示例代码可直接复用 |
-| RevoltFX 特效 sprite sheet | 源仓 https://github.com/bma73/revolt-fx-examples ；许可 https://github.com/bma73/revolt-fx-examples/blob/main/LICENSE.md ；样例内文件 https://github.com/RSamaium/RPG-JS/blob/v5/samples/sample-dev/public/revoltfx-spritesheet.png 、.../revoltfx-spritesheet.json | MIT，无额外义务 | 已在 sample-dev 中随仓分发；可直接使用 |
 | Davidvitas「RPG Music Pack」 | 原始署名页 🔴 https://www.davidvitas.com/portfolio/2016/5/12/rpg-music-pack （2026-11-28 直连 404，会话中由 v3 模板 README 提供） ；许可 https://creativecommons.org/licenses/by/4.0/deed.en ；v3 模板文件 https://github.com/rpgjs/template/blob/HEAD/src/modules/starter/client/sounds/assets/Town_Theme.ogg 、.../doorOpen_1.ogg | CC BY 4.0，署名（作者+包名+链接） | 可作 BGM/音效源；原始页面失效时保留原引用并注明，不擅自换源 |
 | game-icons.net 图标 | 官网 https://game-icons.net/ ；许可 https://creativecommons.org/licenses/by/3.0/ | CC BY 3.0，署名 | v3 模板 README 署名图标来源 |
-| Kenney 免费素材集（含 RPG tileset） | ⚠️ https://kenney.nl/assets （2026-11-28 直连 403 反爬；会话核查结论为全线 CC0） | CC0，无义务 | 作为第二档 Pipoya 的干净替代源（同 16x16/32x32 规格） |
+| Kenney 免费素材集（含 RPG tileset） | ✅ https://kenney.nl/assets （2026-11-28 有头 Edge 与网页提取成功；直连 curl 仍可能 403） | CC0，无义务 | 作为第二档 Pipoya 的干净替代源；运行时格式与选型建议见 `docs/RPGJS运行时与内容类型.md` |
 
 ## 2. 第二档：需教育许可（商用/自用均可，但「课程包向学员再分发素材原文件」需先取得书面许可）
 
@@ -56,8 +55,7 @@
 | faceset.png | https://github.com/RSamaium/RPG-JS/blob/v5/samples/sample-dev/public/faceset.png | 3.5MB，无署名 |
 | background.jpg | https://github.com/RSamaium/RPG-JS/blob/v5/samples/sample-dev/public/background.jpg | 元数据时间戳 2025-06-28 |
 | music.mp3 | https://github.com/RSamaium/RPG-JS/blob/v5/samples/sample-dev/public/music.mp3 | 仅 LAME 编码器标签；疑为 Davidvitas 包重编码但编码不同、无指纹可验，**不升档** |
-| cursor.wav | https://github.com/RSamaium/RPG-JS/blob/v5/samples/sample-dev/public/cursor.wav | 与 typewriter.wav 哈希相同，实为同一音效 |
-| typewriter.wav | https://github.com/RSamaium/RPG-JS/blob/v5/samples/sample-dev/public/typewriter.wav | 同上 |
+| cursor.wav / typewriter.wav | 早期核查记录为相同哈希；2026-11-28 固定 commit `5616eda1` 审计发现两者 Git blob SHA 不同但 bytes 同为 176478。因属第三档未下载内容，不能重新断言字节是否相同；两者均保持禁用 |
 
 结论：以上素材与 v3 模板已署名素材及已知免费包哈希**零匹配**，仓库内无任何署名；仅其代码结构 / bundle 组织方式可参考，**素材全部替换**。
 

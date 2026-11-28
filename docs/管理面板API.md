@@ -36,15 +36,15 @@ CSV 列为 `username,email,display_name[,password]`；首行可选。用户名�
 
 预览中的 `conflicts` 是数据库中已存在的用户名或邮箱；预览不建号，也不生成最终随机密码。正式创建时仍由数据库唯一约束保证原子回滚。下载使用条件 `UPDATE ... RETURNING` 原子消费，响应带 `Cache-Control: no-store`；领取后清空 `csv_text`。
 
-## 学生与教师账号
+## 通用账号管理
 
 | 方法 | 路径 | 请求 | 响应 |
 |---|---|---|---|
-| GET | `/accounts?query=&status=&role=&password_state=&limit=&offset=` | `role: student\|teacher` | `{ accounts: AdminAccount[], total, limit, offset }` |
-| PATCH | `/accounts/:id` | `{ username?: string, email?: string \| null, display_name?: string, status?: "active" \| "disabled", role?: "student" \| "teacher" }` | `{ account: AdminAccount }` |
-| POST | `/accounts/:id/password-reset` | — | `{ temporary_password: string, must_change_password: true }` |
+| GET | `/accounts?query=&status=&role=&password_state=&limit=&offset=` | `role: student\|teacher\|admin` | `{ accounts: AdminAccount[], total, limit, offset }` |
+| PATCH | `/accounts/:id` | `{ username?: string, email?: string \| null, display_name?: string, status?: "active" \| "disabled", role?: "student" \| "teacher" \| "admin" }` | `{ account: AdminAccount }` |
+| POST | `/accounts/:id/password-reset` | — | `{ temporary_password: string, must_change_password: true }`；目标为当前管理员时返回 403 `CANNOT_RESET_OWN_PASSWORD` |
 
-`AdminAccount`：`{ id, username, email: string|null, display_name, role: "student"|"teacher", status, must_change_password, created_at, last_seen_at: string|null, password_updated_at: string|null, batch_id: string|null, batch_filename: string|null }`。用户名必填且唯一，邮箱可空；非空邮箱唯一。教师只能查询和管理学生；管理员可管理学生与教师，但不能管理管理员。仅管理员可修改角色，角色变更会撤销目标账号会话。重置密码会撤销目标账号全部会话，且不改变启停状态。
+`AdminAccount`：`{ id, username, email: string|null, display_name, role: "student"|"teacher"|"admin", status, must_change_password, created_at, last_seen_at: string|null, password_updated_at: string|null, batch_id: string|null, batch_filename: string|null }`。用户名必填且唯一，邮箱可空；非空邮箱唯一。教师只能查询和管理学生；管理员可查询和管理全部角色，包括管理员本人，但重置本人密码仍返回 403 `CANNOT_RESET_OWN_PASSWORD`。仅管理员可修改角色，角色变更会撤销目标账号会话；降级或停用最后一个活跃管理员返回 409 `LAST_ACTIVE_ADMIN`。重置其他账号密码会撤销目标账号全部会话，且不改变启停状态；管理员本人应使用个人资料中的 `/api/v1/auth/password` 自助改密。
 
 ## 当前用户资料
 
@@ -58,6 +58,8 @@ CSV 列为 `username,email,display_name[,password]`；首行可选。用户名�
 ## 课程
 
 学习端课程接口已抽象为通用 provider，当前版本固定无课：`GET /api/v1/courses` 返回 `{ courses: [] }`，课程详情、整包与单文件接口返回 404。管理端课程 API 与课程包存储仍保留给后续课程实现；管理面板 UI 暂不展示上传/上下架入口。
+
+> v0.9 目标是将本节 `Record<string,string>` 文本包 API 迁移为 RPGJS artifact/manifest + R2 媒体上传；以下字段描述当前实现，不是最终课程格式。
 
 | 方法 | 路径 | 请求 | 响应 |
 |---|---|---|---|

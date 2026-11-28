@@ -10,6 +10,7 @@ interface AppShellProps extends PropsWithChildren {
   appName?: string;
   user?: User | null;
   adminUrl?: string | null;
+  homeHref?: string;
   onProfile?: () => void;
   onLogout?: () => void;
 }
@@ -31,25 +32,26 @@ function safeAdminUrl(value: string | null | undefined): string | null {
   }
 }
 
-export function AppShell({ children, appName = "CodeQuest", user, adminUrl, onProfile, onLogout }: AppShellProps) {
+export function AppShell({ children, appName = "CodeQuest", user, adminUrl, homeHref, onProfile, onLogout }: AppShellProps) {
   const { t } = useI18n();
   const accountName = displayNameOf(user);
   const initial = accountName.trim().charAt(0).toUpperCase() || "CQ";
   const roleLabel = user ? t(`role.${user.role}`) : "";
   const canManage = user?.role === "teacher" || user?.role === "admin";
   const adminHref = canManage ? safeAdminUrl(adminUrl) : null;
+  const brand = <>
+    <span className="brand-mark"><Code2 size={21} strokeWidth={2.2} aria-hidden="true" /></span>
+    <span className="brand-copy">
+      <strong>{appName}</strong>
+      <small>{t("nav.brandTagline")}</small>
+    </span>
+  </>;
 
   return (
     <div className="app-shell">
       <header className="app-header">
         <div className="app-header-inner">
-          <div className="brand" aria-label={appName}>
-            <span className="brand-mark"><Code2 size={21} strokeWidth={2.2} aria-hidden="true" /></span>
-            <span className="brand-copy">
-              <strong>{appName}</strong>
-              <small>{t("nav.brandTagline")}</small>
-            </span>
-          </div>
+          {homeHref ? <a className="brand" href={homeHref} aria-label={appName}>{brand}</a> : <div className="brand" aria-label={appName}>{brand}</div>}
           <div className="header-actions">
             {user && (onProfile ? (
               <button

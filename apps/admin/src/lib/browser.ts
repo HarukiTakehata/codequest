@@ -1,3 +1,5 @@
+import { LocalizedError } from "../api";
+
 export async function copyText(text: string): Promise<void> {
   if (navigator.clipboard?.writeText) {
     await navigator.clipboard.writeText(text);
@@ -12,7 +14,7 @@ export async function copyText(text: string): Promise<void> {
   textarea.select();
   const copied = document.execCommand("copy");
   textarea.remove();
-  if (!copied) throw new Error("复制失败，请手动选择并复制。");
+  if (!copied) throw new LocalizedError("admin.errors.copyFailed");
 }
 
 export function downloadText(filename: string, content: string, type = "text/csv;charset=utf-8") {

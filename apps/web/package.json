@@ -11,6 +11,8 @@
   },
   "dependencies": {
     "@codequest/judge": "*",
+    "@codequest/i18n": "*",
+    "@codequest/rpgjs-script": "*",
     "@codequest/runtime-clang": "*",
     "@codequest/runtime-js": "*",
     "@codequest/runtime-pyodide": "*",

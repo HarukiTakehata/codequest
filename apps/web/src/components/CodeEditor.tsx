@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useId, useRef } from "react";
 import { LANG_IDS, monaco, setDiagnostics, setShellCompletionDetail } from "../editor";
 import type { Lang } from "../types";
 import { useI18n } from "../i18n/I18nProvider";
@@ -9,15 +9,18 @@ interface Props {
   language: Lang;
   onChange: (value: string) => void;
   diagnostics?: { line: number; message: string }[];
+  /** Course-provided TypeScript declarations for the script subset (for example `game.player.move`). */
+  apiDeclaration?: string;
 }
 
-export function CodeEditor({ value, language, onChange, diagnostics = [] }: Props) {
+export function CodeEditor({ value, language, onChange, diagnostics = [], apiDeclaration }: Props) {
   const { t } = useI18n();
   const { theme } = useTheme();
   const container = useRef<HTMLDivElement>(null);
   const editor = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
   const changeRef = useRef(onChange);
   changeRef.current = onChange;
+  const apiDeclarationPath = `codequest-course-api-${useId().replace(/[^a-zA-Z0-9_-]/g, "")}.d.ts`;
 
   useEffect(() => {
     if (!container.current) return;
@@ -46,6 +49,17 @@ export function CodeEditor({ value, language, onChange, diagnostics = [] }: Prop
   useEffect(() => {
     setShellCompletionDetail(t("completion.teachingApplet"));
   }, [t]);
+
+  useEffect(() => {
+    if (!apiDeclaration?.trim()) return;
+    // addExtraLib is global to the JS language service. Always dispose the previous
+    // handle so switching courses cannot leave stale APIs in Monaco's worker.
+    const declaration = monaco.languages.typescript.javascriptDefaults.addExtraLib(
+      apiDeclaration,
+      apiDeclarationPath,
+    );
+    return () => declaration.dispose();
+  }, [apiDeclaration, apiDeclarationPath]);
 
   useEffect(() => {
     const model = editor.current?.getModel();

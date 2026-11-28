@@ -23,6 +23,7 @@ describe("公共界面组件", () => {
     expect(chinese).toContain("学习实例");
     expect(chinese).toContain("切换语言");
     expect(chinese).toContain("切换到深色模式");
+    expect(render("zh", createElement(AppShell, { appName: "学习实例", homeHref: "/courses" }, "content"))).toContain('<a class="brand" href="/courses"');
   });
 
   it("容器进度标题、数值和 ARIA 文本随语言切换", () => {
@@ -68,6 +69,8 @@ describe("公共界面组件", () => {
     expect(courses).toContain("Welcome back, Ada");
     expect(courses).toContain("Free mode");
     expect(courses).toContain("Course content is not available in this version yet");
+    expect(courses).toContain('href="/free"');
+    expect(courses).toContain('href="/container"');
   });
 
   it("目标面板本地化空状态与提交提示", () => {

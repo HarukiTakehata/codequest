@@ -2,10 +2,11 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App";
 import { ToastProvider } from "./components/Toast";
+import { I18nProvider } from "@codequest/i18n";
 import "./styles.css";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <ToastProvider><App /></ToastProvider>
+    <I18nProvider defaultLocale="zh"><ToastProvider><App /></ToastProvider></I18nProvider>
   </StrictMode>,
 );

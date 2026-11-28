@@ -50,18 +50,81 @@ for (const [path, text] of Object.entries(files)) {
     if (!goal.id || !goal.text || !goal.check?.kind) errors.push(`${path}: goal 字段不完整`);
   }
 }
+const isRecord = (value) => value !== null && typeof value === "object" && !Array.isArray(value);
+const judgeIds = new Set();
+const judgeConfigs = new Map();
 for (const [path, text] of Object.entries(files)) {
   if (!path.startsWith("judges/") || !path.endsWith(".json")) continue;
   let judge;
   try { judge = JSON.parse(text); } catch { errors.push(`${path}: JSON 无法解析`); continue; }
+  if (!isRecord(judge)) { errors.push(`${path}: judge 必须是对象`); continue; }
+  if (!judge.id) errors.push(`${path}: 缺少 id`);
+  if (judgeIds.has(judge.id)) errors.push(`${path}: 判题 id 重复 ${judge.id}`);
+  judgeIds.add(judge.id);
+  if (judge.id) judgeConfigs.set(judge.id, judge);
   if (!Array.isArray(judge.cases) || judge.cases.length === 0) errors.push(`${path}: 至少需要一个测试点`);
+  const kind = judge.kind ?? "oi";
+  if (!["oi", "script"].includes(kind)) errors.push(`${path}: 未知判题类型 ${kind}`);
+  const caseIds = new Set();
   for (const test of judge.cases ?? []) {
-    for (const key of ["id", "name", "stdin", "expected"]) {
-      if (typeof test[key] !== "string") errors.push(`${path}: 测试点缺少 ${key}`);
+    if (!isRecord(test)) { errors.push(`${path}: 测试点必须是对象`); continue; }
+    if (!test.id || !test.name) errors.push(`${path}: 测试点缺少 id/name`);
+    if (caseIds.has(test.id)) errors.push(`${path}: 测试点 id 重复 ${test.id}`);
+    caseIds.add(test.id);
+    if (test.weight !== undefined && (!Number.isFinite(test.weight) || test.weight <= 0)) {
+      errors.push(`${path}: weight 必须是正数`);
     }
-    if (test.mode && !["exact", "eol", "ws", "regex-line", "numeric-tol"].includes(test.mode)) {
-      errors.push(`${path}: 未知比对模式 ${test.mode}`);
+    if (kind === "oi") {
+      for (const key of ["stdin", "expected"]) {
+        if (typeof test[key] !== "string") errors.push(`${path}: 测试点缺少 ${key}`);
+      }
+      if (test.mode && !["exact", "eol", "ws", "regex-line", "numeric-tol"].includes(test.mode)) {
+        errors.push(`${path}: 未知比对模式 ${test.mode}`);
+      }
+    } else {
+      if (!isRecord(test.expect) || Object.keys(test.expect).length === 0) {
+        errors.push(`${path}: 脚本测试点 expect 必须是非空对象`);
+      }
+      if ("stdin" in test || "expected" in test || "mode" in test) {
+        errors.push(`${path}: 脚本测试点不能使用 OI 的 stdin/expected/mode 字段`);
+      }
+      const runs = [test.call, test.fire, test.emit].filter((value) => value !== undefined);
+      if (runs.length !== 1) errors.push(`${path}: 脚本测试点必须且只能指定 call/fire/emit 之一`);
+      if (test.call !== undefined && (typeof test.call?.fn !== "string" || !test.call.fn)) {
+        errors.push(`${path}: call.fn 不能为空`);
+      }
+      if (test.fire !== undefined && (typeof test.fire !== "string" || !test.fire)) {
+        errors.push(`${path}: fire 不能为空`);
+      }
+      if (test.emit !== undefined && (typeof test.emit?.signal !== "string" || !test.emit.signal)) {
+        errors.push(`${path}: emit.signal 不能为空`);
+      }
+      if (test.world !== undefined && !isRecord(test.world)) errors.push(`${path}: world 必须是对象`);
+      if (test.dice !== undefined && (!Array.isArray(test.dice) || test.dice.some((n) => !Number.isFinite(n)))) {
+        errors.push(`${path}: dice 必须是数字数组`);
+      }
+      if (test.choices !== undefined && (!Array.isArray(test.choices) || test.choices.some((n) => !Number.isInteger(n)))) {
+        errors.push(`${path}: choices 必须是整数数组`);
+      }
     }
+  }
+  if (kind === "script") {
+    if (judge.init !== undefined && !isRecord(judge.init)) errors.push(`${path}: init 必须是对象`);
+    if (judge.requiredExports !== undefined && (!Array.isArray(judge.requiredExports) || judge.requiredExports.some((name) => typeof name !== "string" || !name))) {
+      errors.push(`${path}: requiredExports 必须是非空字符串数组`);
+    }
+    for (const [key, value] of Object.entries(judge.limits ?? {})) {
+      if (!Number.isInteger(value) || value <= 0) errors.push(`${path}: limits.${key} 必须是正整数`);
+    }
+  }
+}
+for (const path of Object.keys(files).filter((p) => p.startsWith("challenges/") && p.endsWith(".json"))) {
+  let challenge;
+  try { challenge = JSON.parse(files[path]); } catch { continue; }
+  if (!challenge.judge) continue;
+  const judge = judgeConfigs.get(challenge.judge);
+  if (judge && (judge.kind ?? "oi") === "script" && (challenge.lang !== "javascript" || (challenge.mode ?? "code") !== "code")) {
+    errors.push(`${path}: 脚本判题要求 lang=javascript、mode=code`);
   }
 }
 

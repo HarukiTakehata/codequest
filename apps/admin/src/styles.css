@@ -219,6 +219,11 @@ label { display: grid; gap: 7px; color: #41495d; font-size: 0.8rem; font-weight:
 .topbar-user { max-width: 130px; overflow: hidden; font-size: 0.77rem; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
 .topbar-profile { min-height: 37px; padding: 3px 7px 3px 3px; display: flex; align-items: center; gap: 7px; border: 1px solid transparent; border-radius: 9px; color: inherit; background: none; }
 .topbar-profile:hover { border-color: var(--line); background: var(--surface-soft); }
+.language-switcher { position: relative; }
+.dropdown-menu { position: absolute; top: calc(100% + 9px); right: 0; z-index: 80; width: 156px; padding: 5px; border: 1px solid var(--line-strong); border-radius: 12px; background: var(--surface); box-shadow: var(--shadow-lg); }
+.dropdown-menu button { width: 100%; padding: 9px 11px; display: flex; align-items: center; justify-content: space-between; border: 0; border-radius: 8px; color: var(--muted); background: transparent; font-size: 0.84rem; font-weight: 650; text-align: left; }
+.dropdown-menu button:hover, .dropdown-menu button:focus-visible { color: var(--ink); background: var(--surface-soft); }
+.dropdown-menu button.is-active { color: var(--primary); background: var(--primary-soft); }
 
 /* Current-user information dialog */
 .profile-summary { margin-bottom: 18px; display: flex; align-items: center; gap: 12px; }
@@ -231,6 +236,10 @@ label { display: grid; gap: 7px; color: #41495d; font-size: 0.8rem; font-weight:
 .profile-details div:last-child { border-bottom: 0; }
 .profile-details dt { display: flex; align-items: center; gap: 6px; color: var(--muted); }
 .profile-details dd { margin: 0; overflow-wrap: anywhere; font-weight: 650; }
+.profile-password { margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--line); }
+.profile-password .section-heading { margin-bottom: 6px; }
+.profile-password h2 { display: flex; align-items: center; gap: 7px; margin: 0; font-size: 0.9rem; }
+.profile-password form { margin-top: 14px; }
 .editor-unavailable { color: var(--faint); font-size: 0.7rem; }
 .mobile-menu-button { display: none; }
 .config-loading { padding: 7px 30px; color: var(--muted); border-bottom: 1px solid var(--line); background: #fafbfe; font-size: 0.71rem; }

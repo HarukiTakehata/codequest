@@ -1,7 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { en } from "../../apps/web/src/i18n/en";
-import { zh } from "../../apps/web/src/i18n/zh";
-import { getTranslator, htmlLang, isLocale, LOCALES, resolveLocale } from "../../apps/web/src/i18n";
+import { en, zh, getTranslator, htmlLang, isLocale, LOCALES, resolveLocale } from "@codequest/i18n";
 import { errorMessageKey, localizeError } from "../../apps/web/src/i18n/errors";
 import { ApiError } from "../../apps/web/src/api";
 import { isFactoryFreeSample } from "../../apps/web/src/free";
@@ -30,6 +28,9 @@ describe("界面 i18n", () => {
     expect(english("login.identifier")).toBe("Username or email");
     expect(chinese("setup.adminUsername")).toBe("管理员用户名");
     expect(english("setup.adminEmail")).toBe("Administrator email (optional)");
+    expect(chinese("accounts.title")).toBe("账号管理");
+    expect(english("accounts.title")).toBe("Account management");
+    expect(chinese("accounts.count", { count: 3 })).toBe("3 位账号");
     expect(chinese("judge.failed", { score: 60 })).toBe("未通过 · 60 分");
     expect(htmlLang("zh")).toBe("zh-CN");
     expect(htmlLang("en")).toBe("en");
@@ -71,19 +72,36 @@ describe("界面 i18n", () => {
     expect(isFactoryFreeSample({ ...sample, expected: "custom\n" })).toBe(false);
   });
 
-  it("TSX 可见界面不残留硬编码中文", () => {
-    const files: string[] = [];
-    const walk = (path: URL) => {
+  it("语言切换入口保持单图标，不展示当前语言文字或下拉箭头", () => {
+    for (const path of [
+      "apps/web/src/components/LanguageSwitcher.tsx",
+      "apps/admin/src/components/LanguageSwitcher.tsx",
+    ]) {
+      const source = fs.readFileSync(new URL(`../../${path}`, import.meta.url), "utf8");
+      expect(source, path).toContain("<Globe2");
+      expect(source, path).not.toContain("language-current");
+      expect(source, path).not.toContain("ChevronDown");
+      expect(source, path).toContain('data-testid="language-switcher"');
+      expect(source, path).toContain('aria-haspopup="menu"');
+      expect(source, path).toContain('role="menuitemradio"');
+    }
+  });
+
+  it("学习端与管理面板 TSX 可见界面不残留硬编码中文", () => {
+    const files: Array<{ path: string; source: string }> = [];
+    const walk = (path: URL, rootPath: string) => {
       for (const entry of fs.readdirSync(path, { withFileTypes: true })) {
         const url = new URL(entry.name, path);
-        if (entry.isDirectory()) walk(new URL(entry.name + "/", path));
-        else if (entry.name.endsWith(".tsx")) files.push(fs.readFileSync(url, "utf8"));
+        if (entry.isDirectory()) walk(new URL(entry.name + "/", path), rootPath);
+        else if (entry.name.endsWith(".tsx")) files.push({ path: `${rootPath}${entry.name}`, source: fs.readFileSync(url, "utf8") });
       }
     };
-    walk(new URL("../../apps/web/src/", import.meta.url));
-    for (const source of files) {
+    for (const rootPath of ["apps/web/src/", "apps/admin/src/"]) {
+      walk(new URL(`../../${rootPath}`, import.meta.url), rootPath);
+    }
+    for (const { path, source } of files) {
       const visibleSource = source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
-      expect(visibleSource, "界面文案应通过 i18n 字典").not.toMatch(/[\p{Script=Han}]/u);
+      expect(visibleSource, `${path} 文案应通过共享 i18n 字典`).not.toMatch(/[\p{Script=Han}]/u);
     }
   });
 });

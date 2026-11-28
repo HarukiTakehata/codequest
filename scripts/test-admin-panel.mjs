@@ -61,6 +61,11 @@ const state = {
   setupUrl: "/setup-target",
   accounts: [
     {
+      id: "usr_admin", username: "admin", email: "admin@example.test", display_name: "管理员", role: "admin", status: "active",
+      must_change_password: false, created_at: "2026-11-27T08:00:00.000Z", last_seen_at: "2026-11-27T08:00:00.000Z",
+      password_updated_at: "2026-11-27T08:00:00.000Z", batch_id: null, batch_filename: null,
+    },
+    {
       id: "usr_alice", username: "alice", email: "alice@example.test", display_name: "Alice", role: "student", status: "active",
       must_change_password: true, created_at: "2026-11-27T08:00:00.000Z", last_seen_at: null,
       password_updated_at: "2026-11-27T08:00:00.000Z", batch_id: null, batch_filename: null,
@@ -81,7 +86,7 @@ const state = {
     difficulty: "beginner", entry: "start.txt", version: 1, bytes: 120, sha256: "a".repeat(64),
     enabled: true, created_at: "2026-11-27T08:00:00.000Z", updated_at: "2026-11-27T08:00:00.000Z",
   }],
-  previewRequests: [], createRequests: [], accountPatches: [],
+  previewRequests: [], createRequests: [], accountPatches: [], passwordChanges: [],
 };
 const json = (body, status = 200, headers = {}) => ({ status, contentType: "application/json", body: JSON.stringify(body), headers });
 const unauthorized = () => json({ error: { code: "UNAUTHENTICATED", message: "请先登录", request_id: "e2e" } }, 401);
@@ -137,6 +142,22 @@ try {
     } else if (path === "/api/v1/auth/logout" && method === "POST") {
       state.sessionRole = null;
       result = json({ ok: true }, 200, { "set-cookie": "cq_e2e=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax" });
+    } else if (path === "/api/v1/auth/password" && method === "POST") {
+      if (!authenticated) result = unauthorized();
+      else {
+        const input = body();
+        const role = currentUser().role;
+        if (input.current_password !== passwords[role]) {
+          result = json({ error: { code: "CURRENT_PASSWORD_INCORRECT", message: "当前密码不正确", request_id: "e2e" } }, 401);
+        } else if (String(input.new_password ?? "").length < 10 || input.new_password === input.current_password) {
+          result = json({ error: { code: "INVALID_ARGUMENT", message: "新密码不合法", request_id: "e2e" } }, 400);
+        } else {
+          passwords[role] = input.new_password;
+          state.passwordChanges.push({ role, current_password: input.current_password, new_password: input.new_password });
+          state.sessionRole = null;
+          result = json({ ok: true, reauth_required: true }, 200, { "set-cookie": "cq_e2e=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax" });
+        }
+      }
     } else if (path === "/api/v1/admin/config") result = !authenticated ? unauthorized() : !isStaff() ? forbidden() : json({ instance_name: instanceName, editor_url: "https://editor.example.test", learner_url: "https://learn.example.test", download_link_ttl_hours: 24 });
     else if (path === "/api/v1/admin/overview") {
       if (!authenticated) result = unauthorized();
@@ -225,7 +246,10 @@ try {
           const role = currentUser().role === "teacher" ? "student" : requestedRole;
           const status = url.searchParams.get("status");
           const passwordState = url.searchParams.get("password_state");
-          const accounts = state.accounts.filter((a) => (!role || a.role === role) && (!query || `${a.username} ${a.email ?? ""} ${a.display_name ?? ""}`.toLowerCase().includes(query)) && (!status || a.status === status) && (!passwordState || (passwordState === "required" ? a.must_change_password : !a.must_change_password)));
+          const scopedAccounts = currentUser().role === "teacher"
+            ? state.accounts.filter((account) => account.role === "student")
+            : state.accounts;
+          const accounts = scopedAccounts.filter((a) => (!role || a.role === role) && (!query || `${a.username} ${a.email ?? ""} ${a.display_name ?? ""}`.toLowerCase().includes(query)) && (!status || a.status === status) && (!passwordState || (passwordState === "required" ? a.must_change_password : !a.must_change_password)));
           result = json({ accounts, total: accounts.length, limit: 20, offset: 0 });
         }
       }
@@ -235,7 +259,8 @@ try {
       else {
         const id = path.split("/")[5];
         const account = state.accounts.find((item) => item.id === id);
-        if (!account) result = json({ error: { code: "NOT_FOUND", message: "账号不存在" } }, 404);
+        if (id === currentUser().id) result = json({ error: { code: "CANNOT_RESET_OWN_PASSWORD", message: "不能重置自己的密码，请使用个人资料自主改密", request_id: "e2e" } }, 403);
+        else if (!account) result = json({ error: { code: "NOT_FOUND", message: "账号不存在" } }, 404);
         else if (!canManageAccount(account)) result = forbidden();
         else {
           account.must_change_password = true;
@@ -298,9 +323,48 @@ try {
   assert.equal(await workspace.getByText("学习系统", { exact: true }).count(), 0);
   assert.equal(await workspace.getByText("在线", { exact: true }).count(), 0);
   await workspace.getByText("管理员", { exact: true }).waitFor();
+  await page.waitForFunction(() => document.title === "账号管理 · CodeQuest · 管理面板");
+  assert.equal(await page.locator("html").getAttribute("lang"), "zh-CN");
+  const languageToggle = page.getByTestId("language-switcher");
+  assert.equal(await languageToggle.count(), 1);
+  assert.equal(await languageToggle.getAttribute("aria-label"), "切换语言");
+  assert.equal(await languageToggle.getAttribute("aria-haspopup"), "menu");
+  assert.equal(await languageToggle.getAttribute("aria-expanded"), "false");
+  assert.equal((await languageToggle.innerText()).trim(), "");
+  assert.equal(await languageToggle.locator("svg.lucide-globe-2").count(), 1);
+  assert.equal(await languageToggle.locator("svg").count(), 1);
+  assert.equal(await page.locator(".language-current").count(), 0);
+  assert.equal(await page.locator("svg.lucide-chevron-down").count(), 0);
   await page.screenshot({ path: "/tmp/opencode/codequest-admin-dashboard.png", fullPage: true });
   console.log("PASS 管理员用户名登录与鉴权门禁");
   console.log("PASS 工作区显示真实实例名且不展示硬编码在线状态");
+
+  await page.locator(".topbar-profile").click();
+  const profileDialog = page.getByRole("dialog");
+  await profileDialog.getByRole("heading", { name: "用户信息", exact: true }).waitFor();
+  await profileDialog.getByRole("heading", { name: "修改密码", exact: true }).waitFor();
+  await profileDialog.locator("#profile-current-password").fill("wrong-password-123");
+  await profileDialog.locator("#profile-new-password").fill("admin-ready-password-123");
+  await profileDialog.locator("#profile-confirm-password").fill("admin-ready-password-123");
+  await profileDialog.getByRole("button", { name: "更新密码", exact: true }).click();
+  await profileDialog.getByText("当前密码不正确。", { exact: true }).waitFor();
+  assert.equal(await page.getByRole("heading", { name: "欢迎回来", exact: true }).count(), 0);
+  await profileDialog.locator("#profile-current-password").fill("admin-password-123");
+  await profileDialog.locator("#profile-confirm-password").fill("different-password-123");
+  await profileDialog.getByRole("button", { name: "更新密码", exact: true }).click();
+  await profileDialog.getByText("两次输入的新密码不一致。", { exact: true }).waitFor();
+  await profileDialog.locator("#profile-confirm-password").fill("admin-ready-password-123");
+  await profileDialog.getByRole("button", { name: "更新密码", exact: true }).click();
+  await page.getByRole("heading", { name: "欢迎回来", exact: true }).waitFor();
+  assert.equal(state.passwordChanges.at(-1)?.role, "admin");
+  assert.equal(state.passwordChanges.at(-1)?.new_password, "admin-ready-password-123");
+  assert.equal(passwords.admin, "admin-ready-password-123");
+  await page.getByText("密码已更新，请使用新密码重新登录。", { exact: true }).waitFor();
+  await page.locator("#login-identifier").fill(admin.username);
+  await page.locator('input[type="password"]').fill("admin-ready-password-123");
+  await page.getByRole("button", { name: /登录/ }).click();
+  await page.getByText("概览", { exact: true }).first().waitFor();
+  console.log("PASS 管理员个人资料自助改密、确认校验、会话失效与重新登录");
 
   await page.getByText("批量发号", { exact: true }).first().click();
   const csvInput = page.locator("textarea").first();
@@ -324,7 +388,7 @@ try {
   assert.match(csv, /bob,,Bob,/);
   console.log("PASS CSV 预览、确认发号与一次性发放表下载");
 
-  await page.getByText("成员账号", { exact: true }).first().click();
+  await page.getByText("账号管理", { exact: true }).first().click();
   await page.getByPlaceholder(/搜索用户名、邮箱或显示名称/).fill("alice");
   await page.getByRole("button", { name: "搜索", exact: true }).click();
   await page.getByText("alice@example.test", { exact: true }).waitFor();
@@ -342,8 +406,38 @@ try {
   await temporaryDialog.getByRole("button", { name: "我已安全保存" }).click();
   console.log("PASS 账号搜索、停用与一次性临时密码展示");
 
+  // 通用账号管理展示管理员本人，但本人仍不提供重置密码入口。
   await page.getByPlaceholder(/搜索用户名、邮箱或显示名称/).fill("");
   await page.getByRole("button", { name: "搜索", exact: true }).click();
+  await page.getByText("4 位账号", { exact: true }).waitFor();
+  assert.equal(await page.getByRole("row").filter({ hasText: admin.email }).count(), 1);
+  assert.equal(await page.getByRole("button", { name: "重置密码", exact: true }).count(), 3);
+  assert.match(await page.locator(".accounts-heading .badge").innerText(), /4 位账号/);
+  for (const identifier of [admin.username, admin.email]) {
+    await page.getByPlaceholder(/搜索用户名、邮箱或显示名称/).fill(identifier);
+    const [searchResponse] = await Promise.all([
+      page.waitForResponse((response) => response.url().includes("/api/v1/admin/accounts?") && response.request().method() === "GET"),
+      page.getByRole("button", { name: "搜索", exact: true }).click(),
+    ]);
+    assert.equal(searchResponse.ok(), true);
+    await page.locator(".accounts-heading .badge").filter({ hasText: "1 位账号" }).waitFor();
+    await page.getByRole("row").filter({ hasText: admin.email }).waitFor();
+    assert.equal(await page.getByRole("row").filter({ hasText: admin.email }).count(), 1);
+    assert.equal(await page.getByRole("button", { name: "重置密码", exact: true }).count(), 0);
+    assert.match(await page.locator(".accounts-heading .badge").innerText(), /1 位账号/);
+  }
+  const selfReset = await page.evaluate(async (id) => {
+    const response = await fetch(`/api/v1/admin/accounts/${id}/password-reset`, { method: "POST" });
+    return { status: response.status, body: await response.json() };
+  }, admin.id);
+  assert.equal(selfReset.status, 403);
+  assert.equal(selfReset.body.error.code, "CANNOT_RESET_OWN_PASSWORD");
+  assert.equal(state.audits.some((event) => event.action === "account_password_reset" && event.target_id === admin.id), false);
+  await page.getByPlaceholder(/搜索用户名、邮箱或显示名称/).fill("");
+  await page.getByRole("button", { name: "搜索", exact: true }).click();
+  await page.getByText("4 位账号", { exact: true }).waitFor();
+  console.log("PASS 通用账号列表、管理员搜索与自重置 403 防线");
+
   const bobRow = page.getByRole("row").filter({ hasText: "bob" });
   await bobRow.waitFor();
   await bobRow.getByText("未设置邮箱", { exact: true }).waitFor();
@@ -362,6 +456,10 @@ try {
   const teacherAccountRow = page.getByRole("row").filter({ hasText: "teacher@example.test" });
   await teacherAccountRow.waitFor();
   assert.equal(await page.getByRole("row").filter({ hasText: "alice@example.test" }).count(), 0);
+  await page.locator("#account-role-filter").selectOption("admin");
+  const adminAccountRow = page.getByRole("row").filter({ hasText: admin.email });
+  await adminAccountRow.waitFor();
+  assert.equal(await page.getByRole("row").filter({ hasText: "teacher@example.test" }).count(), 0);
   await page.locator("#account-role-filter").selectOption("");
   await teacherAccountRow.getByRole("button", { name: "编辑账号", exact: true }).click();
   const editDialog = page.getByRole("dialog");
@@ -387,6 +485,58 @@ try {
   await page.getByText("password_reset", { exact: true }).first().waitFor();
   console.log("PASS 管理审计记录");
 
+  await languageToggle.click();
+  const chineseLanguageMenu = page.getByRole("menu", { name: "语言", exact: true });
+  await chineseLanguageMenu.waitFor();
+  assert.equal(await languageToggle.getAttribute("aria-expanded"), "true");
+  assert.ok(await languageToggle.getAttribute("aria-controls"));
+  await page.getByRole("menuitemradio", { name: "English", exact: true }).click();
+  await page.waitForFunction(() => document.documentElement.lang === "en");
+  await page.waitForFunction(() => document.title === "Audit log · CodeQuest · Admin");
+  assert.equal((await languageToggle.innerText()).trim(), "");
+  assert.equal(await languageToggle.getAttribute("aria-label"), "Switch language");
+  assert.equal(await page.locator(".language-current").count(), 0);
+  assert.equal(await page.locator("svg.lucide-chevron-down").count(), 0);
+  await page.getByRole("heading", { name: "Audit log", exact: true }).waitFor();
+  await page.getByText("Create issuance batch", { exact: true }).first().waitFor();
+  await page.getByText("Reset temporary password", { exact: true }).first().waitFor();
+  await page.getByRole("link", { name: "Account management", exact: true }).click();
+  await page.getByRole("heading", { name: "Account management", exact: true }).waitFor();
+  await page.getByPlaceholder("Search username, email, or display name").waitFor();
+  const englishAliceRow = page.getByRole("row").filter({ hasText: "alice@example.test" });
+  const expectedEnglishDate = await page.evaluate(() => new Intl.DateTimeFormat("en", {
+    year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false,
+  }).format(new Date("2026-11-27T08:00:00.000Z")));
+  assert.ok((await englishAliceRow.innerText()).includes(expectedEnglishDate), "账号日期应使用英文格式");
+  await page.reload({ waitUntil: "networkidle" });
+  await page.getByRole("heading", { name: "Account management", exact: true }).waitFor();
+  assert.equal(await page.locator("html").getAttribute("lang"), "en", "刷新后应保留已保存的语言");
+  await page.locator('.sidebar-nav a[href="/batches"]').click();
+  await page.getByRole("heading", { name: "Batch account issuance", exact: true }).waitFor();
+  await page.getByRole("button", { name: "Download template", exact: true }).waitFor();
+  await page.getByText("CSV content", { exact: true }).waitFor();
+  await languageToggle.click();
+  await page.getByRole("menu", { name: "Language", exact: true }).waitFor();
+  await page.getByRole("menuitemradio", { name: "中文", exact: true }).click();
+  await page.waitForFunction(() => document.documentElement.lang === "zh-CN");
+  await page.waitForFunction(() => document.title === "批量发号 · CodeQuest · 管理面板");
+  await page.getByRole("heading", { name: "批量发放账号", exact: true }).waitFor();
+  await page.getByRole("button", { name: "下载模板", exact: true }).waitFor();
+  await languageToggle.focus();
+  await page.keyboard.press("ArrowDown");
+  await page.getByRole("menu", { name: "语言", exact: true }).waitFor();
+  await page.waitForFunction(() => document.activeElement?.getAttribute("role") === "menuitemradio");
+  await page.keyboard.press("ArrowDown");
+  assert.equal((await page.evaluate(() => document.activeElement?.textContent?.trim())), "中文");
+  await page.keyboard.press("Escape");
+  assert.equal(await page.getByRole("menu", { name: "语言", exact: true }).count(), 0);
+  assert.equal(await page.evaluate(() => document.activeElement?.hasAttribute("data-language-toggle")), true);
+  await languageToggle.click();
+  await page.getByRole("menu", { name: "语言", exact: true }).waitFor();
+  await page.getByRole("heading", { name: "批量发放账号", exact: true }).click();
+  assert.equal(await page.getByRole("menu", { name: "语言", exact: true }).count(), 0);
+  console.log("PASS 单图标语言切换、导航/账号/发号/审计文案、日期、持久化与键盘交互");
+
   await page.goto(`${origin}/courses`, { waitUntil: "networkidle" });
   await page.getByText("当前版本暂不提供课程", { exact: true }).waitFor();
   await page.goto(`${origin}/courses/`, { waitUntil: "networkidle" });
@@ -400,8 +550,13 @@ try {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.getByRole("button", { name: "打开导航菜单" }).click();
   const drawer = page.getByRole("dialog");
-  await drawer.getByRole("link", { name: /成员账号/ }).click();
-  await page.getByRole("heading", { name: "成员账号", exact: true }).waitFor();
+  await drawer.getByRole("link", { name: /账号管理/ }).click();
+  await page.getByRole("heading", { name: "账号管理", exact: true }).waitFor();
+  assert.equal(await page.getByTestId("language-switcher").isVisible(), true);
+  await page.getByTestId("language-switcher").click();
+  await page.getByRole("menu", { name: "语言", exact: true }).waitFor();
+  await page.keyboard.press("Escape");
+  assert.equal(await page.getByRole("menu", { name: "语言", exact: true }).count(), 0);
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
   assert.ok(overflow <= 1, `移动端横向溢出 ${overflow}px`);
   await page.screenshot({ path: "/tmp/opencode/codequest-admin-mobile.png", fullPage: true });
@@ -435,7 +590,7 @@ try {
   assert.equal(teacherManageTeacher, 403);
   console.log("PASS 教师邮箱登录、审计深链接重定向与审计接口拒绝");
 
-  await page.getByRole("link", { name: "成员账号", exact: true }).click();
+  await page.getByRole("link", { name: "账号管理", exact: true }).click();
   await page.locator("#account-role-filter").waitFor();
   assert.equal(await page.locator("#account-role-filter").isDisabled(), true);
   assert.equal(await page.locator("#account-role-filter").inputValue(), "student");
@@ -477,7 +632,7 @@ try {
   await page.getByRole("button", { name: /登录/ }).click();
   await page.getByRole("heading", { name: "学生账号不能访问管理面板", exact: true }).waitFor();
   await page.getByText("学生账号仅用于学习端", { exact: false }).waitFor();
-  assert.equal(await page.getByRole("link", { name: "成员账号", exact: true }).count(), 0);
+  assert.equal(await page.getByRole("link", { name: "账号管理", exact: true }).count(), 0);
   const studentConfig = await page.evaluate(async () => (await fetch("/api/v1/admin/config")).status);
   assert.equal(studentConfig, 403);
   await page.getByRole("button", { name: "退出当前账号", exact: true }).click();

@@ -40,17 +40,17 @@ adminRoutes.use("*", async (c, next) => {
   await requireStaff(c, next);
 });
 
-type ManageableRole = Exclude<UserRole, "admin">;
+type BatchRole = Exclude<UserRole, "admin">;
 
 function accountScopeSql(user: UserRow, column = "role"): string {
-  return user.role === "teacher" ? `${column} = 'student'` : `${column} IN ('student','teacher')`;
+  return user.role === "teacher" ? `${column} = 'student'` : `${column} IN ('student','teacher','admin')`;
 }
 
 function batchScopeSql(user: UserRow, column = "role"): string {
   return accountScopeSql(user, column);
 }
 
-function batchRole(user: UserRow, requested?: ManageableRole): ManageableRole {
+function batchRole(user: UserRow, requested?: BatchRole): BatchRole {
   const role = requested ?? "student";
   if (user.role === "teacher" && role !== "student") {
     throw new HttpError(403, "FORBIDDEN", "教师只能创建学生账号");
@@ -62,7 +62,7 @@ interface IssuedBatchRow {
   id: string;
   admin_id: string;
   filename: string;
-  role: ManageableRole;
+  role: BatchRole;
   count: number;
   download_token_hash: string;
   csv_text: string | null;
@@ -276,7 +276,7 @@ const accountPatchSchema = z.object({
   username: usernameSchema.optional(),
   email: emailSchema.optional(),
   display_name: z.string().trim().max(120).optional(),
-  role: z.enum(["student", "teacher"]).optional(),
+  role: z.enum(["student", "teacher", "admin"]).optional(),
   status: z.enum(["active", "disabled"]).optional(),
 }).refine((body) => body.username !== undefined || body.email !== undefined ||
   body.display_name !== undefined || body.role !== undefined || body.status !== undefined,
@@ -530,7 +530,7 @@ adminRoutes.get("/accounts", async (c) => {
   const user = c.get("user");
   const parsedFilters = z.object({
     query: z.string().trim().max(254).optional(),
-    role: z.enum(["student", "teacher"]).optional(),
+    role: z.enum(["student", "teacher", "admin"]).optional(),
     status: z.enum(["active", "disabled"]).optional(),
     password_state: z.enum(["required", "ready"]).optional(),
   }).safeParse({
@@ -541,7 +541,7 @@ adminRoutes.get("/accounts", async (c) => {
   });
   if (!parsedFilters.success) throw new HttpError(400, "INVALID_ARGUMENT", "账号筛选参数不合法");
   const filters = parsedFilters.data;
-  if (user.role === "teacher" && filters.role === "teacher") {
+  if (user.role === "teacher" && filters.role !== undefined && filters.role !== "student") {
     throw new HttpError(403, "FORBIDDEN", "教师只能管理学生账号");
   }
   const where = [accountScopeSql(user, "u.role")];
@@ -586,6 +586,13 @@ adminRoutes.patch("/accounts/:id", async (c) => {
   }
   const id = c.req.param("id");
   const accountScope = accountScopeSql(user);
+  const target = await c.get("db").prepare(`
+    SELECT id, role, status FROM users WHERE id = ?1 AND ${accountScope}
+  `).bind(id).first<Pick<UserRow, "id" | "role" | "status">>();
+  if (!target) throw new HttpError(404, "ACCOUNT_NOT_FOUND", "账号不存在");
+  const removesActiveAdmin = target.role === "admin" && target.status === "active" && (
+    (body.role !== undefined && body.role !== "admin") || body.status === "disabled"
+  );
   const displayName = body.display_name === undefined ? undefined : normalizeDisplayName(body.display_name);
   const assignments: string[] = [];
   const values: (string | number | null)[] = [];
@@ -610,10 +617,19 @@ adminRoutes.patch("/accounts/:id", async (c) => {
   if (body.role !== undefined || body.status !== undefined) {
     assignments.push("auth_version = auth_version + 1");
   }
+  const idParameter = parameter++;
   values.push(id);
+  let updateScope = `id = ?${idParameter} AND ${accountScope}`;
+  if (removesActiveAdmin) {
+    const otherAdminParameter = parameter++;
+    values.push(id);
+    updateScope += ` AND EXISTS (
+      SELECT 1 FROM users WHERE role = 'admin' AND status = 'active' AND id <> ?${otherAdminParameter}
+    )`;
+  }
   const now = nowIso();
   const statements = [
-    c.get("db").prepare(`UPDATE users SET ${assignments.join(", ")} WHERE id = ?${parameter} AND ${accountScope}`)
+    c.get("db").prepare(`UPDATE users SET ${assignments.join(", ")} WHERE ${updateScope}`)
       .bind(...values),
     auditStatement(c.get("db"), user, "account_updated", "user", id, metadata, now, {
       sql: () => `EXISTS (SELECT 1 FROM users WHERE ${expected.join(" AND ")})`,
@@ -621,17 +637,34 @@ adminRoutes.patch("/accounts/:id", async (c) => {
     }),
   ];
   if (body.role !== undefined || body.status !== undefined) {
+    const sessionValues: (string | number | null)[] = [now, id];
+    const sessionExpectations: string[] = [];
+    let sessionParameter = 3;
+    if (body.role !== undefined) {
+      sessionExpectations.push(`role = ?${sessionParameter++}`);
+      sessionValues.push(body.role);
+    }
+    if (body.status !== undefined) {
+      sessionExpectations.push(`status = ?${sessionParameter++}`);
+      sessionValues.push(body.status);
+    }
     statements.push(c.get("db").prepare(`
       UPDATE user_sessions SET revoked_at = ?1 WHERE user_id = ?2 AND revoked_at IS NULL
-        AND EXISTS (SELECT 1 FROM users WHERE id = ?2 AND ${accountScope})
-    `).bind(now, id));
+        AND EXISTS (SELECT 1 FROM users WHERE id = ?2 AND ${accountScope}
+          ${sessionExpectations.length ? `AND ${sessionExpectations.join(" AND ")}` : ""})
+    `).bind(...sessionValues));
   }
   const results = await c.get("db").batch(statements).catch((error: unknown) => {
     const conflict = identityConflict(error);
     if (conflict) throw new HttpError(409, conflict.code, conflict.message);
     throw error;
   });
-  if (results[0]!.changes !== 1) throw new HttpError(404, "ACCOUNT_NOT_FOUND", "账号不存在");
+  if (results[0]!.changes !== 1) {
+    if (removesActiveAdmin) {
+      throw new HttpError(409, "LAST_ACTIVE_ADMIN", "至少需要保留一个活跃管理员账号");
+    }
+    throw new HttpError(404, "ACCOUNT_NOT_FOUND", "账号不存在");
+  }
   const row = await c.get("db").prepare(`
     SELECT u.*, ui.batch_id, b.filename AS batch_filename
     FROM users u LEFT JOIN user_issuance ui ON ui.user_id = u.id
@@ -644,6 +677,9 @@ adminRoutes.patch("/accounts/:id", async (c) => {
 adminRoutes.post("/accounts/:id/password-reset", async (c) => {
   const id = c.req.param("id");
   const user = c.get("user");
+  if (id === user.id) {
+    throw new HttpError(403, "CANNOT_RESET_OWN_PASSWORD", "不能重置自己的密码，请通过个人资料自主改密");
+  }
   const accountScope = accountScopeSql(user);
   const password = temporaryPassword();
   const passwordHash = await hashPassword(password);

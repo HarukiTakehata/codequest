@@ -1,0 +1,14 @@
+{
+  "id": "script_move",
+  "title": "向上移动并领取奖励",
+  "description": "调用 game.player.move 向上移动 4 步，然后扣除 5 gold。",
+  "lang": "javascript",
+  "mode": "code",
+  "template": "export function move() {\n  // TODO: game.player.move(\"up\", 4);\n}\n",
+  "judge": "j_script_move",
+  "goals": [
+    { "id": "uses-course-api", "text": "调用课程移动 API", "check": { "kind": "source-regex", "pattern": "game\\.player\\.move" } },
+    { "id": "passes-cases", "text": "通过全部脚本测试", "check": { "kind": "testcase", "all": true } }
+  ],
+  "requireAllGoals": false
+}

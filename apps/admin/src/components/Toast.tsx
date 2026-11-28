@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { CheckCircle2, CircleAlert, Info, X } from "lucide-react";
+import { useI18n } from "@codequest/i18n";
 
 type ToastTone = "success" | "error" | "info";
 interface ToastItem {
@@ -11,6 +12,7 @@ interface ToastItem {
 const ToastContext = createContext<((message: string, tone?: ToastTone) => void) | null>(null);
 
 export function ToastProvider({ children }: { children: ReactNode }) {
+  const { t } = useI18n();
   const [items, setItems] = useState<ToastItem[]>([]);
   const nextId = useCallback(() => Date.now() + Math.random(), []);
   const push = useCallback((message: string, tone: ToastTone = "success") => {
@@ -21,7 +23,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext.Provider value={push}>
       {children}
-      <div className="toast-region" aria-label="通知" aria-live="polite" aria-atomic="false">
+      <div className="toast-region" aria-label={t("admin.toast.region")} aria-live="polite" aria-atomic="false">
         {items.map((item) => <Toast key={item.id} item={item} onClose={() => setItems((current) => current.filter((toast) => toast.id !== item.id))} />)}
       </div>
     </ToastContext.Provider>
@@ -29,6 +31,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 }
 
 function Toast({ item, onClose }: { item: ToastItem; onClose: () => void }) {
+  const { t } = useI18n();
   useEffect(() => {
     const timer = window.setTimeout(onClose, 4500);
     return () => window.clearTimeout(timer);
@@ -38,13 +41,13 @@ function Toast({ item, onClose }: { item: ToastItem; onClose: () => void }) {
     <div className={`toast toast-${item.tone}`} role={item.tone === "error" ? "alert" : "status"}>
       <Icon size={19} aria-hidden="true" />
       <span>{item.message}</span>
-      <button type="button" className="toast-close" onClick={onClose} aria-label="关闭通知"><X size={16} /></button>
+      <button type="button" className="toast-close" onClick={onClose} aria-label={t("admin.toast.close")}><X size={16} /></button>
     </div>
   );
 }
 
 export function useToast() {
   const context = useContext(ToastContext);
-  if (!context) throw new Error("ToastProvider 未挂载");
+  if (!context) throw new Error("ToastProvider is not mounted");
   return useMemo(() => context, [context]);
 }

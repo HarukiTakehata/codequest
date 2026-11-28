@@ -1,0 +1,10 @@
+# Runtime assets do not need source maps, type declarations, or TS build metadata.
+**/*.map
+**/*.d.ts
+**/*.tsbuildinfo
+
+# Embedded app routing/security is handled by the Worker for this deployment.
+admin/_headers
+admin/_redirects
+editor/_headers
+editor/_redirects
