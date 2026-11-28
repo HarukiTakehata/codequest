@@ -1,35 +1,46 @@
 {
-  "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "codequest",
-  "main": "src/index.ts",
-  "compatibility_date": "2026-11-01",
-  "compatibility_flags": ["nodejs_compat"],
-  "assets": {
-    "directory": "./apps/web/dist",
-    "binding": "ASSETS",
-    "not_found_handling": "single-page-application",
-    "run_worker_first": ["/", "/admin", "/admin/*", "/api/*", "/runtime/*"]
-  },
-  "d1_databases": [
-    {
-      "binding": "DB",
-      "database_name": "codequest_local",
-      "migrations_dir": "migrations"
-    }
-  ],
-  "r2_buckets": [
-    {
-      "binding": "COURSE_PACKS",
-      "bucket_name": "codequest-course-packs"
-    }
-  ],
-  "keep_vars": true,
-  "triggers": {
-    "crons": ["23 * * * *"]
-  },
-  "vars": {
-    "ENVIRONMENT": "production",
-    "AUTH_MODE": "session",
-    "REGISTRATION_ENABLED": "false"
-  }
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "codequest",
+	"main": "src/index.ts",
+	"compatibility_date": "2026-11-01",
+	"compatibility_flags": [
+		"nodejs_compat"
+	],
+	"assets": {
+		"directory": "./apps/web/dist",
+		"binding": "ASSETS",
+		"not_found_handling": "single-page-application",
+		"run_worker_first": [
+			"/",
+			"/admin",
+			"/admin/*",
+			"/api/*",
+			"/runtime/*"
+		]
+	},
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "codequest_local",
+			"migrations_dir": "migrations",
+			"database_id": "a94815a3-1d33-47ff-80c9-106b7e19441e"
+		}
+	],
+	"r2_buckets": [
+		{
+			"binding": "COURSE_PACKS",
+			"bucket_name": "codequest-course-packs"
+		}
+	],
+	"keep_vars": true,
+	"triggers": {
+		"crons": [
+			"23 * * * *"
+		]
+	},
+	"vars": {
+		"ENVIRONMENT": "production",
+		"AUTH_MODE": "session",
+		"REGISTRATION_ENABLED": "false"
+	}
 }
